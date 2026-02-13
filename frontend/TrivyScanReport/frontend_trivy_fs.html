@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Trivy Report - 2026-02-14 02:39:34.441909004 +0530 IST m=+0.386750298
+  </title>
+  <style>
+    * { font-family: Arial, Helvetica, sans-serif; }
+    h1 { text-align: center; margin: .5em 0; }
+
+    .summary {
+      display: flex;
+      justify-content: center;
+      gap: 1em;
+      margin: 1em 0;
+      flex-wrap: wrap;
+    }
+    .card {
+      padding: .5em 1em;
+      border-radius: 5px;
+      color: #fff;
+      font-weight: bold;
+      min-width: 90px;
+      text-align: center;
+    }
+    .low { background: #5fbb31; }
+    .medium { background: #e9c600; color: #000; }
+    .high { background: #ff8800; }
+    .critical { background: #e40000; }
+    .unknown { background: #747474; }
+
+    table {
+      width: 95%;
+      margin: 0 auto 2em;
+      border-collapse: collapse;
+    }
+    thead th {
+      position: sticky;
+      top: 0;
+      background: #f4f4f4;
+      padding: .5em;
+      border: 1px solid #ccc;
+    }
+    td, th {
+      padding: .4em;
+      border: 1px solid #ccc;
+      vertical-align: top;
+    }
+
+    .severity {
+      padding: .2em .4em;
+      border-radius: 3px;
+      color: #fff;
+      display: inline-block;
+      font-size: 0.9em;
+    }
+    .severity-LOW { background: #5fbb31; }
+    .severity-MEDIUM { background: #e9c600; color: #000; }
+    .severity-HIGH { background: #ff8800; }
+    .severity-CRITICAL { background: #e40000; }
+    .severity-UNKNOWN { background: #747474; }
+
+    td.links a, td.links[data-more-links=on] a {
+      display: block;
+    }
+    td.links[data-more-links=off] a:nth-of-type(n+5) { display: none; }
+    a.toggle-more-links { cursor: pointer; color: #00f; }
+
+    .filter-bar {
+      text-align: center;
+      margin: 0 auto 1em;
+    }
+    .filter-bar input, .filter-bar select {
+      padding: .3em;
+      margin: 0 .3em;
+    }
+
+    /* Expandable description styling */
+    .description-cell {
+      max-height: 3.6em;
+      overflow: hidden;
+      position: relative;
+    }
+    .description-cell.expanded {
+      max-height: none;
+    }
+    .show-more {
+      display: block;
+      color: #00f;
+      cursor: pointer;
+      font-size: 0.85em;
+      margin-top: 0.3em;
+    }
+  </style>
+  <script>
+    window.onload = function() {
+      // Toggle more links
+      document.querySelectorAll('td.links').forEach(cell => {
+        const links = Array.from(cell.querySelectorAll('a')).sort((a,b) => a.href > b.href ? 1 : -1);
+        if (links.length > 3) {
+          const t = document.createElement('a');
+          t.innerText = 'Toggle more links';
+          t.href = '#';
+          t.className = 'toggle-more-links';
+          t.onclick = () => {
+            cell.dataset.moreLinks = (cell.dataset.moreLinks === 'on' ? 'off' : 'on');
+            return false;
+          };
+          cell.appendChild(t);
+        }
+      });
+
+      // Summary counts
+      const counts = {LOW:0, MEDIUM:0, HIGH:0, CRITICAL:0, UNKNOWN:0};
+      document.querySelectorAll('td.severity').forEach(cell => {
+        const sev = cell.textContent.trim().toUpperCase();
+        if (sev in counts) counts[sev]++;
+      });
+      document.getElementById('count-low').innerText = counts.LOW;
+      document.getElementById('count-medium').innerText = counts.MEDIUM;
+      document.getElementById('count-high').innerText = counts.HIGH;
+      document.getElementById('count-critical').innerText = counts.CRITICAL;
+      document.getElementById('count-unknown').innerText = counts.UNKNOWN;
+
+      // Filtering
+      const pkgFilter = document.getElementById('filter-package');
+      const sevFilter = document.getElementById('filter-severity');
+      const apply = () => {
+        const pkgVal = pkgFilter.value.toLowerCase();
+        const sevVal = sevFilter.value;
+        document.querySelectorAll('tbody tr').forEach(row => {
+          if (row.classList.contains('group-header') || row.classList.contains('sub-header')) return;
+          const pkg = (row.querySelector('.pkg-name, .misconf-type')?.textContent.toLowerCase()) || '';
+          const sev = row.querySelector('.severity')?.textContent || '';
+          row.style.display = (!pkgVal || pkg.includes(pkgVal)) && (!sevVal || sev === sevVal) ? '' : 'none';
+        });
+      };
+      pkgFilter.oninput = apply;
+      sevFilter.onchange = apply;
+
+      // Expand/Collapse descriptions
+      document.querySelectorAll('.show-more').forEach(btn => {
+        btn.onclick = () => {
+          const cell = btn.previousElementSibling;
+          const expanded = cell.classList.toggle('expanded');
+          btn.textContent = expanded ? 'Show less' : 'Show more';
+        };
+      });
+    };
+  </script>
+</head>
+<body>
+  <h1>Trivy Report – 2026-02-14 02:39:34.441954114 +0530 IST m=+0.386795348
+  </h1>
+
+  <div class="summary">
+    <div class="card critical">CRITICAL: <span id="count-critical">0</span></div>
+    <div class="card high">HIGH: <span id="count-high">0</span></div>
+    <div class="card medium">MEDIUM: <span id="count-medium">0</span></div>
+    <div class="card low">LOW: <span id="count-low">0</span></div>
+    <div class="card unknown">UNKNOWN: <span id="count-unknown">0</span></div>
+  </div>
+
+  <div class="filter-bar">
+    <input id="filter-package" type="text" placeholder="Filter by package/type">
+    <select id="filter-severity">
+      <option value="">All Severities</option>
+      <option value="LOW">LOW</option>
+      <option value="MEDIUM">MEDIUM</option>
+      <option value="HIGH">HIGH</option>
+      <option value="CRITICAL">CRITICAL</option>
+      <option value="UNKNOWN">UNKNOWN</option>
+    </select>
+  </div>
+
+  <table>
+    <tbody>
+      <tr><th colspan="7">No scan results found.</th></tr>
+    </tbody>
+  </table>
+</body>
+</html>
