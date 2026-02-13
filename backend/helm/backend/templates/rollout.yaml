@@ -1,0 +1,64 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ include "backend.fullname" . }}
+  labels:
+    {{- include "backend.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "backend.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "backend.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          env:
+            - name: SPRING_POSTGRES_URL
+              value: 'jdbc:postgresql://postgresql-primary.postgresql.svc.cluster.local:5432/demo'
+            - name: SPRING_POSTGRES_USERNAME
+              value: 'root'
+            - name: SPRING_POSTGRES_PASSWORD
+              value: 'DigiLedgeUAT8463'
+  strategy:
+    {{- if eq .Values.strategy.type "bluegreen" }}
+    blueGreen:
+      activeService: {{ include "backend.fullname" . }}
+      previewService: {{ include "backend.fullname" . }}-preview
+      autoPromotionEnabled: {{ .Values.strategy.autoPromotionEnabled }}
+    {{- else if eq .Values.strategy.type "canary" }}
+    canary:
+      canaryService: {{ include "backend.fullname" . }}-canary
+      stableService: {{ include "backend.fullname" . }}
+      maxSurge: 1
+      maxUnavailable: 0
+      steps:
+        - setWeight: 20
+        - pause: { duration: 30 }
+        - setWeight: 50
+        - pause: { duration: 30 }
+        - setWeight: 100
+      {{- end }}

@@ -1,0 +1,1742 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>backend:v1 (debian 12.13) - Trivy Report - 2026-02-14 00:05:13.589419007 +0530 IST m=+45.665770848
+  </title>
+  <style>
+    * { font-family: Arial, Helvetica, sans-serif; }
+    h1 { text-align: center; margin: .5em 0; }
+
+    .summary {
+      display: flex;
+      justify-content: center;
+      gap: 1em;
+      margin: 1em 0;
+      flex-wrap: wrap;
+    }
+    .card {
+      padding: .5em 1em;
+      border-radius: 5px;
+      color: #fff;
+      font-weight: bold;
+      min-width: 90px;
+      text-align: center;
+    }
+    .low { background: #5fbb31; }
+    .medium { background: #e9c600; color: #000; }
+    .high { background: #ff8800; }
+    .critical { background: #e40000; }
+    .unknown { background: #747474; }
+
+    table {
+      width: 95%;
+      margin: 0 auto 2em;
+      border-collapse: collapse;
+    }
+    thead th {
+      position: sticky;
+      top: 0;
+      background: #f4f4f4;
+      padding: .5em;
+      border: 1px solid #ccc;
+    }
+    td, th {
+      padding: .4em;
+      border: 1px solid #ccc;
+      vertical-align: top;
+    }
+
+    .severity {
+      padding: .2em .4em;
+      border-radius: 3px;
+      color: #fff;
+      display: inline-block;
+      font-size: 0.9em;
+    }
+    .severity-LOW { background: #5fbb31; }
+    .severity-MEDIUM { background: #e9c600; color: #000; }
+    .severity-HIGH { background: #ff8800; }
+    .severity-CRITICAL { background: #e40000; }
+    .severity-UNKNOWN { background: #747474; }
+
+    td.links a, td.links[data-more-links=on] a {
+      display: block;
+    }
+    td.links[data-more-links=off] a:nth-of-type(n+5) { display: none; }
+    a.toggle-more-links { cursor: pointer; color: #00f; }
+
+    .filter-bar {
+      text-align: center;
+      margin: 0 auto 1em;
+    }
+    .filter-bar input, .filter-bar select {
+      padding: .3em;
+      margin: 0 .3em;
+    }
+
+    /* Expandable description styling */
+    .description-cell {
+      max-height: 3.6em;
+      overflow: hidden;
+      position: relative;
+    }
+    .description-cell.expanded {
+      max-height: none;
+    }
+    .show-more {
+      display: block;
+      color: #00f;
+      cursor: pointer;
+      font-size: 0.85em;
+      margin-top: 0.3em;
+    }
+  </style>
+  <script>
+    window.onload = function() {
+      // Toggle more links
+      document.querySelectorAll('td.links').forEach(cell => {
+        const links = Array.from(cell.querySelectorAll('a')).sort((a,b) => a.href > b.href ? 1 : -1);
+        if (links.length > 3) {
+          const t = document.createElement('a');
+          t.innerText = 'Toggle more links';
+          t.href = '#';
+          t.className = 'toggle-more-links';
+          t.onclick = () => {
+            cell.dataset.moreLinks = (cell.dataset.moreLinks === 'on' ? 'off' : 'on');
+            return false;
+          };
+          cell.appendChild(t);
+        }
+      });
+
+      // Summary counts
+      const counts = {LOW:0, MEDIUM:0, HIGH:0, CRITICAL:0, UNKNOWN:0};
+      document.querySelectorAll('td.severity').forEach(cell => {
+        const sev = cell.textContent.trim().toUpperCase();
+        if (sev in counts) counts[sev]++;
+      });
+      document.getElementById('count-low').innerText = counts.LOW;
+      document.getElementById('count-medium').innerText = counts.MEDIUM;
+      document.getElementById('count-high').innerText = counts.HIGH;
+      document.getElementById('count-critical').innerText = counts.CRITICAL;
+      document.getElementById('count-unknown').innerText = counts.UNKNOWN;
+
+      // Filtering
+      const pkgFilter = document.getElementById('filter-package');
+      const sevFilter = document.getElementById('filter-severity');
+      const apply = () => {
+        const pkgVal = pkgFilter.value.toLowerCase();
+        const sevVal = sevFilter.value;
+        document.querySelectorAll('tbody tr').forEach(row => {
+          if (row.classList.contains('group-header') || row.classList.contains('sub-header')) return;
+          const pkg = (row.querySelector('.pkg-name, .misconf-type')?.textContent.toLowerCase()) || '';
+          const sev = row.querySelector('.severity')?.textContent || '';
+          row.style.display = (!pkgVal || pkg.includes(pkgVal)) && (!sevVal || sev === sevVal) ? '' : 'none';
+        });
+      };
+      pkgFilter.oninput = apply;
+      sevFilter.onchange = apply;
+
+      // Expand/Collapse descriptions
+      document.querySelectorAll('.show-more').forEach(btn => {
+        btn.onclick = () => {
+          const cell = btn.previousElementSibling;
+          const expanded = cell.classList.toggle('expanded');
+          btn.textContent = expanded ? 'Show less' : 'Show more';
+        };
+      });
+    };
+  </script>
+</head>
+<body>
+  <h1>backend:v1 (debian 12.13) – Trivy Report – 2026-02-14 00:05:13.59030905 +0530 IST m=+45.666660901
+  </h1>
+
+  <div class="summary">
+    <div class="card critical">CRITICAL: <span id="count-critical">0</span></div>
+    <div class="card high">HIGH: <span id="count-high">0</span></div>
+    <div class="card medium">MEDIUM: <span id="count-medium">0</span></div>
+    <div class="card low">LOW: <span id="count-low">0</span></div>
+    <div class="card unknown">UNKNOWN: <span id="count-unknown">0</span></div>
+  </div>
+
+  <div class="filter-bar">
+    <input id="filter-package" type="text" placeholder="Filter by package/type">
+    <select id="filter-severity">
+      <option value="">All Severities</option>
+      <option value="LOW">LOW</option>
+      <option value="MEDIUM">MEDIUM</option>
+      <option value="HIGH">HIGH</option>
+      <option value="CRITICAL">CRITICAL</option>
+      <option value="UNKNOWN">UNKNOWN</option>
+    </select>
+  </div>
+
+  <table>
+    <tbody>
+      <tr class="group-header"><th colspan="7">debian</th></tr>
+      <tr class="sub-header">
+        <th>Package</th>
+        <th>Vuln ID</th>
+        <th>Severity</th>
+        <th>Installed</th>
+        <th>Fixed</th>
+        <th>Description</th>
+        <th>Links</th>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">gcc-12-base</td>
+        <td>CVE-2022-27943</td>
+        <td class="severity">LOW</td>
+        <td>12.2.0-14+deb12u1</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            libiberty/rust-demangle.c in GNU GCC 11.2 allows stack consumption in demangle_const, as demonstrated by nm-new.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2022-27943">https://access.redhat.com/security/cve/CVE-2022-27943</a>
+            <a href="https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105039">https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105039</a>
+            <a href="https://gcc.gnu.org/git/gitweb.cgi?p=gcc.git;h=1a770b01ef415e114164b6151d1e55acdee09371">https://gcc.gnu.org/git/gitweb.cgi?p=gcc.git;h=1a770b01ef415e114164b6151d1e55acdee09371</a>
+            <a href="https://gcc.gnu.org/git/gitweb.cgi?p=gcc.git;h=9234cdca6ee88badfc00297e72f13dac4e540c79">https://gcc.gnu.org/git/gitweb.cgi?p=gcc.git;h=9234cdca6ee88badfc00297e72f13dac4e540c79</a>
+            <a href="https://gcc.gnu.org/git/gitweb.cgi?p=gcc.git;h=fc968115a742d9e4674d9725ce9c2106b91b6ead">https://gcc.gnu.org/git/gitweb.cgi?p=gcc.git;h=fc968115a742d9e4674d9725ce9c2106b91b6ead</a>
+            <a href="https://gcc.gnu.org/pipermail/gcc-patches/2022-March/592244.html">https://gcc.gnu.org/pipermail/gcc-patches/2022-March/592244.html</a>
+            <a href="https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/H424YXGW7OKXS2NCAP35OP6Y4P4AW6VG/">https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/H424YXGW7OKXS2NCAP35OP6Y4P4AW6VG/</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2022-27943">https://nvd.nist.gov/vuln/detail/CVE-2022-27943</a>
+            <a href="https://sourceware.org/bugzilla/show_bug.cgi?id=28995">https://sourceware.org/bugzilla/show_bug.cgi?id=28995</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2022-27943">https://www.cve.org/CVERecord?id=CVE-2022-27943</a>
+        </td>
+      </tr>
+      <tr class="severity-HIGH">
+        <td class="pkg-name">libc6</td>
+        <td>CVE-2026-0861</td>
+        <td class="severity">HIGH</td>
+        <td>2.36-9+deb12u13</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            Passing too large an alignment to the memalign suite of functions (memalign, posix_memalign, aligned_alloc) in the GNU C Library version 2.30 to 2.42 may result in an integer overflow, which could consequently result in a heap corruption.&#xA;&#xA;Note that the attacker must have control over both, the size as well as the alignment arguments of the memalign function to be able to exploit this.  The size parameter must be close enough to PTRDIFF_MAX so as to overflow size_t along with the large alignment argument.  This limits the malicious inputs for the alignment for memalign to the range [1&lt;&lt;62+ 1, 1&lt;&lt;63] and exactly 1&lt;&lt;63 for posix_memalign and aligned_alloc.&#xA;&#xA;Typically the alignment argument passed to such functions is a known constrained quantity (e.g. page size, block size, struct sizes) and is not attacker controlled, because of which this may not be easily exploitable in practice.  An application bug could potentially result in the input alignment being too large, e.g. due to a different buffer overflow or integer overflow in the application or its dependent libraries, but that is again an uncommon usage pattern given typical sources of alignments.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.openwall.com/lists/oss-security/2026/01/16/5">http://www.openwall.com/lists/oss-security/2026/01/16/5</a>
+            <a href="https://access.redhat.com/errata/RHSA-2026:1334">https://access.redhat.com/errata/RHSA-2026:1334</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2026-0861">https://access.redhat.com/security/cve/CVE-2026-0861</a>
+            <a href="https://bugzilla.redhat.com/2429771">https://bugzilla.redhat.com/2429771</a>
+            <a href="https://bugzilla.redhat.com/2430201">https://bugzilla.redhat.com/2430201</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2429771">https://bugzilla.redhat.com/show_bug.cgi?id=2429771</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2430201">https://bugzilla.redhat.com/show_bug.cgi?id=2430201</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-0861">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-0861</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-0915">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-0915</a>
+            <a href="https://errata.almalinux.org/10/ALSA-2026-1334.html">https://errata.almalinux.org/10/ALSA-2026-1334.html</a>
+            <a href="https://errata.rockylinux.org/RLSA-2026:1334">https://errata.rockylinux.org/RLSA-2026:1334</a>
+            <a href="https://linux.oracle.com/cve/CVE-2026-0861.html">https://linux.oracle.com/cve/CVE-2026-0861.html</a>
+            <a href="https://linux.oracle.com/errata/ELSA-2026-50078.html">https://linux.oracle.com/errata/ELSA-2026-50078.html</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2026-0861">https://nvd.nist.gov/vuln/detail/CVE-2026-0861</a>
+            <a href="https://sourceware.org/bugzilla/show_bug.cgi?id=33796">https://sourceware.org/bugzilla/show_bug.cgi?id=33796</a>
+            <a href="https://sourceware.org/git/?p=glibc.git;a=blob_plain;f=advisories/GLIBC-SA-2026-0001">https://sourceware.org/git/?p=glibc.git;a=blob_plain;f=advisories/GLIBC-SA-2026-0001</a>
+            <a href="https://ubuntu.com/security/notices/USN-8005-1">https://ubuntu.com/security/notices/USN-8005-1</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2026-0861">https://www.cve.org/CVERecord?id=CVE-2026-0861</a>
+        </td>
+      </tr>
+      <tr class="severity-MEDIUM">
+        <td class="pkg-name">libc6</td>
+        <td>CVE-2025-15281</td>
+        <td class="severity">MEDIUM</td>
+        <td>2.36-9+deb12u13</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            Calling wordexp with WRDE_REUSE in conjunction with WRDE_APPEND in the GNU C Library version 2.0 to version 2.42 may cause the interface to return uninitialized memory in the we_wordv member, which on subsequent calls to wordfree may abort the process.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.openwall.com/lists/oss-security/2026/01/20/3">http://www.openwall.com/lists/oss-security/2026/01/20/3</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2025-15281">https://access.redhat.com/security/cve/CVE-2025-15281</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-15281">https://nvd.nist.gov/vuln/detail/CVE-2025-15281</a>
+            <a href="https://sourceware.org/bugzilla/show_bug.cgi?id=33814">https://sourceware.org/bugzilla/show_bug.cgi?id=33814</a>
+            <a href="https://ubuntu.com/security/notices/USN-8005-1">https://ubuntu.com/security/notices/USN-8005-1</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-15281">https://www.cve.org/CVERecord?id=CVE-2025-15281</a>
+            <a href="https://www.openwall.com/lists/oss-security/2026/01/20/3">https://www.openwall.com/lists/oss-security/2026/01/20/3</a>
+        </td>
+      </tr>
+      <tr class="severity-MEDIUM">
+        <td class="pkg-name">libc6</td>
+        <td>CVE-2026-0915</td>
+        <td class="severity">MEDIUM</td>
+        <td>2.36-9+deb12u13</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            Calling getnetbyaddr or getnetbyaddr_r with a configured nsswitch.conf that specifies the library&#39;s DNS backend for networks and queries for a zero-valued network in the GNU C Library version 2.0 to version 2.42 can leak stack contents to the configured DNS resolver.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.openwall.com/lists/oss-security/2026/01/16/6">http://www.openwall.com/lists/oss-security/2026/01/16/6</a>
+            <a href="https://access.redhat.com/errata/RHSA-2026:1334">https://access.redhat.com/errata/RHSA-2026:1334</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2026-0915">https://access.redhat.com/security/cve/CVE-2026-0915</a>
+            <a href="https://bugzilla.redhat.com/2429771">https://bugzilla.redhat.com/2429771</a>
+            <a href="https://bugzilla.redhat.com/2430201">https://bugzilla.redhat.com/2430201</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2429771">https://bugzilla.redhat.com/show_bug.cgi?id=2429771</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2430201">https://bugzilla.redhat.com/show_bug.cgi?id=2430201</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-0861">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-0861</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-0915">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-0915</a>
+            <a href="https://errata.almalinux.org/10/ALSA-2026-1334.html">https://errata.almalinux.org/10/ALSA-2026-1334.html</a>
+            <a href="https://errata.rockylinux.org/RLSA-2026:1334">https://errata.rockylinux.org/RLSA-2026:1334</a>
+            <a href="https://linux.oracle.com/cve/CVE-2026-0915.html">https://linux.oracle.com/cve/CVE-2026-0915.html</a>
+            <a href="https://linux.oracle.com/errata/ELSA-2026-50078.html">https://linux.oracle.com/errata/ELSA-2026-50078.html</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2026-0915">https://nvd.nist.gov/vuln/detail/CVE-2026-0915</a>
+            <a href="https://sourceware.org/bugzilla/show_bug.cgi?id=33802">https://sourceware.org/bugzilla/show_bug.cgi?id=33802</a>
+            <a href="https://ubuntu.com/security/notices/USN-8005-1">https://ubuntu.com/security/notices/USN-8005-1</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2026-0915">https://www.cve.org/CVERecord?id=CVE-2026-0915</a>
+            <a href="https://www.openwall.com/lists/oss-security/2026/01/16/6">https://www.openwall.com/lists/oss-security/2026/01/16/6</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">libc6</td>
+        <td>CVE-2010-4756</td>
+        <td class="severity">LOW</td>
+        <td>2.36-9+deb12u13</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            The glob implementation in the GNU C Library (aka glibc or libc6) allows remote authenticated users to cause a denial of service (CPU and memory consumption) via crafted glob expressions that do not match any pathnames, as demonstrated by glob expressions in STAT commands to an FTP daemon, a different vulnerability than CVE-2010-2632.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://cxib.net/stuff/glob-0day.c">http://cxib.net/stuff/glob-0day.c</a>
+            <a href="http://securityreason.com/achievement_securityalert/89">http://securityreason.com/achievement_securityalert/89</a>
+            <a href="http://securityreason.com/exploitalert/9223">http://securityreason.com/exploitalert/9223</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2010-4756">https://access.redhat.com/security/cve/CVE-2010-4756</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=681681">https://bugzilla.redhat.com/show_bug.cgi?id=681681</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=CVE-2010-4756">https://bugzilla.redhat.com/show_bug.cgi?id=CVE-2010-4756</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2010-4756">https://nvd.nist.gov/vuln/detail/CVE-2010-4756</a>
+            <a href="https://security.netapp.com/advisory/ntap-20241108-0002/">https://security.netapp.com/advisory/ntap-20241108-0002/</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2010-4756">https://www.cve.org/CVERecord?id=CVE-2010-4756</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">libc6</td>
+        <td>CVE-2018-20796</td>
+        <td class="severity">LOW</td>
+        <td>2.36-9+deb12u13</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            In the GNU C Library (aka glibc or libc6) through 2.29, check_dst_limits_calc_pos_1 in posix/regexec.c has Uncontrolled Recursion, as demonstrated by &#39;(\227|)(\\1\\1|t1|\\\2537)+&#39; in grep.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.securityfocus.com/bid/107160">http://www.securityfocus.com/bid/107160</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2018-20796">https://access.redhat.com/security/cve/CVE-2018-20796</a>
+            <a href="https://debbugs.gnu.org/cgi/bugreport.cgi?bug=34141">https://debbugs.gnu.org/cgi/bugreport.cgi?bug=34141</a>
+            <a href="https://lists.gnu.org/archive/html/bug-gnulib/2019-01/msg00108.html">https://lists.gnu.org/archive/html/bug-gnulib/2019-01/msg00108.html</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2018-20796">https://nvd.nist.gov/vuln/detail/CVE-2018-20796</a>
+            <a href="https://security.netapp.com/advisory/ntap-20190315-0002/">https://security.netapp.com/advisory/ntap-20190315-0002/</a>
+            <a href="https://support.f5.com/csp/article/K26346590?utm_source=f5support&amp;amp%3Butm_medium=RSS">https://support.f5.com/csp/article/K26346590?utm_source=f5support&amp;amp%3Butm_medium=RSS</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2018-20796">https://www.cve.org/CVERecord?id=CVE-2018-20796</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">libc6</td>
+        <td>CVE-2019-1010022</td>
+        <td class="severity">LOW</td>
+        <td>2.36-9+deb12u13</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            GNU Libc current is affected by: Mitigation bypass. The impact is: Attacker may bypass stack guard protection. The component is: nptl. The attack vector is: Exploit stack buffer overflow vulnerability and use this bypass vulnerability to bypass stack guard. NOTE: Upstream comments indicate &#34;this is being treated as a non-security bug and no real threat.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2019-1010022">https://access.redhat.com/security/cve/CVE-2019-1010022</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2019-1010022">https://nvd.nist.gov/vuln/detail/CVE-2019-1010022</a>
+            <a href="https://security-tracker.debian.org/tracker/CVE-2019-1010022">https://security-tracker.debian.org/tracker/CVE-2019-1010022</a>
+            <a href="https://sourceware.org/bugzilla/show_bug.cgi?id=22850">https://sourceware.org/bugzilla/show_bug.cgi?id=22850</a>
+            <a href="https://sourceware.org/bugzilla/show_bug.cgi?id=22850#c3">https://sourceware.org/bugzilla/show_bug.cgi?id=22850#c3</a>
+            <a href="https://ubuntu.com/security/CVE-2019-1010022">https://ubuntu.com/security/CVE-2019-1010022</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2019-1010022">https://www.cve.org/CVERecord?id=CVE-2019-1010022</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">libc6</td>
+        <td>CVE-2019-1010023</td>
+        <td class="severity">LOW</td>
+        <td>2.36-9+deb12u13</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            GNU Libc current is affected by: Re-mapping current loaded library with malicious ELF file. The impact is: In worst case attacker may evaluate privileges. The component is: libld. The attack vector is: Attacker sends 2 ELF files to victim and asks to run ldd on it. ldd execute code. NOTE: Upstream comments indicate &#34;this is being treated as a non-security bug and no real threat.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.securityfocus.com/bid/109167">http://www.securityfocus.com/bid/109167</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2019-1010023">https://access.redhat.com/security/cve/CVE-2019-1010023</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2019-1010023">https://nvd.nist.gov/vuln/detail/CVE-2019-1010023</a>
+            <a href="https://security-tracker.debian.org/tracker/CVE-2019-1010023">https://security-tracker.debian.org/tracker/CVE-2019-1010023</a>
+            <a href="https://sourceware.org/bugzilla/show_bug.cgi?id=22851">https://sourceware.org/bugzilla/show_bug.cgi?id=22851</a>
+            <a href="https://support.f5.com/csp/article/K11932200?utm_source=f5support&amp;amp%3Butm_medium=RSS">https://support.f5.com/csp/article/K11932200?utm_source=f5support&amp;amp%3Butm_medium=RSS</a>
+            <a href="https://ubuntu.com/security/CVE-2019-1010023">https://ubuntu.com/security/CVE-2019-1010023</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2019-1010023">https://www.cve.org/CVERecord?id=CVE-2019-1010023</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">libc6</td>
+        <td>CVE-2019-1010024</td>
+        <td class="severity">LOW</td>
+        <td>2.36-9+deb12u13</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            GNU Libc current is affected by: Mitigation bypass. The impact is: Attacker may bypass ASLR using cache of thread stack and heap. The component is: glibc. NOTE: Upstream comments indicate &#34;this is being treated as a non-security bug and no real threat.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.securityfocus.com/bid/109162">http://www.securityfocus.com/bid/109162</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2019-1010024">https://access.redhat.com/security/cve/CVE-2019-1010024</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2019-1010024">https://nvd.nist.gov/vuln/detail/CVE-2019-1010024</a>
+            <a href="https://security-tracker.debian.org/tracker/CVE-2019-1010024">https://security-tracker.debian.org/tracker/CVE-2019-1010024</a>
+            <a href="https://sourceware.org/bugzilla/show_bug.cgi?id=22852">https://sourceware.org/bugzilla/show_bug.cgi?id=22852</a>
+            <a href="https://support.f5.com/csp/article/K06046097">https://support.f5.com/csp/article/K06046097</a>
+            <a href="https://support.f5.com/csp/article/K06046097?utm_source=f5support&amp;amp%3Butm_medium=RSS">https://support.f5.com/csp/article/K06046097?utm_source=f5support&amp;amp%3Butm_medium=RSS</a>
+            <a href="https://ubuntu.com/security/CVE-2019-1010024">https://ubuntu.com/security/CVE-2019-1010024</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2019-1010024">https://www.cve.org/CVERecord?id=CVE-2019-1010024</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">libc6</td>
+        <td>CVE-2019-1010025</td>
+        <td class="severity">LOW</td>
+        <td>2.36-9+deb12u13</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            GNU Libc current is affected by: Mitigation bypass. The impact is: Attacker may guess the heap addresses of pthread_created thread. The component is: glibc. NOTE: the vendor&#39;s position is &#34;ASLR bypass itself is not a vulnerability.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2019-1010025">https://access.redhat.com/security/cve/CVE-2019-1010025</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2019-1010025">https://nvd.nist.gov/vuln/detail/CVE-2019-1010025</a>
+            <a href="https://security-tracker.debian.org/tracker/CVE-2019-1010025">https://security-tracker.debian.org/tracker/CVE-2019-1010025</a>
+            <a href="https://sourceware.org/bugzilla/show_bug.cgi?id=22853">https://sourceware.org/bugzilla/show_bug.cgi?id=22853</a>
+            <a href="https://support.f5.com/csp/article/K06046097">https://support.f5.com/csp/article/K06046097</a>
+            <a href="https://support.f5.com/csp/article/K06046097?utm_source=f5support&amp;amp%3Butm_medium=RSS">https://support.f5.com/csp/article/K06046097?utm_source=f5support&amp;amp%3Butm_medium=RSS</a>
+            <a href="https://ubuntu.com/security/CVE-2019-1010025">https://ubuntu.com/security/CVE-2019-1010025</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2019-1010025">https://www.cve.org/CVERecord?id=CVE-2019-1010025</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">libc6</td>
+        <td>CVE-2019-9192</td>
+        <td class="severity">LOW</td>
+        <td>2.36-9+deb12u13</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            In the GNU C Library (aka glibc or libc6) through 2.29, check_dst_limits_calc_pos_1 in posix/regexec.c has Uncontrolled Recursion, as demonstrated by &#39;(|)(\\1\\1)*&#39; in grep, a different issue than CVE-2018-20796. NOTE: the software maintainer disputes that this is a vulnerability because the behavior occurs only with a crafted pattern
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2019-9192">https://access.redhat.com/security/cve/CVE-2019-9192</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2019-9192">https://nvd.nist.gov/vuln/detail/CVE-2019-9192</a>
+            <a href="https://sourceware.org/bugzilla/show_bug.cgi?id=24269">https://sourceware.org/bugzilla/show_bug.cgi?id=24269</a>
+            <a href="https://support.f5.com/csp/article/K26346590?utm_source=f5support&amp;amp%3Butm_medium=RSS">https://support.f5.com/csp/article/K26346590?utm_source=f5support&amp;amp%3Butm_medium=RSS</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2019-9192">https://www.cve.org/CVERecord?id=CVE-2019-9192</a>
+        </td>
+      </tr>
+      <tr class="severity-MEDIUM">
+        <td class="pkg-name">libexpat1</td>
+        <td>CVE-2025-59375</td>
+        <td class="severity">MEDIUM</td>
+        <td>2.5.0-1+deb12u2</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            libexpat in Expat before 2.7.2 allows attackers to trigger large dynamic memory allocations via a small document that is submitted for parsing.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.openwall.com/lists/oss-security/2025/09/16/2">http://www.openwall.com/lists/oss-security/2025/09/16/2</a>
+            <a href="https://access.redhat.com/errata/RHSA-2025:21030">https://access.redhat.com/errata/RHSA-2025:21030</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2025-59375">https://access.redhat.com/security/cve/CVE-2025-59375</a>
+            <a href="https://bugzilla.redhat.com/2395108">https://bugzilla.redhat.com/2395108</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2395108">https://bugzilla.redhat.com/show_bug.cgi?id=2395108</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-59375">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-59375</a>
+            <a href="https://errata.almalinux.org/10/ALSA-2025-21030.html">https://errata.almalinux.org/10/ALSA-2025-21030.html</a>
+            <a href="https://errata.rockylinux.org/RLSA-2025:22175">https://errata.rockylinux.org/RLSA-2025:22175</a>
+            <a href="https://github.com/libexpat/libexpat/blob/676a4c531ec768732fac215da9730b5f50fbd2bf/expat/Changes#L45-L74">https://github.com/libexpat/libexpat/blob/676a4c531ec768732fac215da9730b5f50fbd2bf/expat/Changes#L45-L74</a>
+            <a href="https://github.com/libexpat/libexpat/blob/R_2_7_2/expat/Changes">https://github.com/libexpat/libexpat/blob/R_2_7_2/expat/Changes</a>
+            <a href="https://github.com/libexpat/libexpat/issues/1018">https://github.com/libexpat/libexpat/issues/1018</a>
+            <a href="https://github.com/libexpat/libexpat/pull/1034">https://github.com/libexpat/libexpat/pull/1034</a>
+            <a href="https://issues.oss-fuzz.com/issues/439133977">https://issues.oss-fuzz.com/issues/439133977</a>
+            <a href="https://linux.oracle.com/cve/CVE-2025-59375.html">https://linux.oracle.com/cve/CVE-2025-59375.html</a>
+            <a href="https://linux.oracle.com/errata/ELSA-2025-22175.html">https://linux.oracle.com/errata/ELSA-2025-22175.html</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-59375">https://nvd.nist.gov/vuln/detail/CVE-2025-59375</a>
+            <a href="https://ubuntu.com/security/notices/USN-8022-1">https://ubuntu.com/security/notices/USN-8022-1</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-59375">https://www.cve.org/CVERecord?id=CVE-2025-59375</a>
+        </td>
+      </tr>
+      <tr class="severity-MEDIUM">
+        <td class="pkg-name">libexpat1</td>
+        <td>CVE-2025-66382</td>
+        <td class="severity">MEDIUM</td>
+        <td>2.5.0-1+deb12u2</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            In libexpat through 2.7.3, a crafted file with an approximate size of 2 MiB can lead to dozens of seconds of processing time.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.openwall.com/lists/oss-security/2025/12/02/1">http://www.openwall.com/lists/oss-security/2025/12/02/1</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2025-66382">https://access.redhat.com/security/cve/CVE-2025-66382</a>
+            <a href="https://github.com/libexpat/libexpat/issues/1076">https://github.com/libexpat/libexpat/issues/1076</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-66382">https://nvd.nist.gov/vuln/detail/CVE-2025-66382</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-66382">https://www.cve.org/CVERecord?id=CVE-2025-66382</a>
+        </td>
+      </tr>
+      <tr class="severity-MEDIUM">
+        <td class="pkg-name">libexpat1</td>
+        <td>CVE-2026-25210</td>
+        <td class="severity">MEDIUM</td>
+        <td>2.5.0-1+deb12u2</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            In libexpat before 2.7.4, the doContent function does not properly determine the buffer size bufSize because there is no integer overflow check for tag buffer reallocation.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2026-25210">https://access.redhat.com/security/cve/CVE-2026-25210</a>
+            <a href="https://github.com/libexpat/libexpat/pull/1075">https://github.com/libexpat/libexpat/pull/1075</a>
+            <a href="https://github.com/libexpat/libexpat/pull/1075/commits/9c2d990389e6abe2e44527eeaa8b39f16fe859c7">https://github.com/libexpat/libexpat/pull/1075/commits/9c2d990389e6abe2e44527eeaa8b39f16fe859c7</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2026-25210">https://nvd.nist.gov/vuln/detail/CVE-2026-25210</a>
+            <a href="https://ubuntu.com/security/notices/USN-8022-1">https://ubuntu.com/security/notices/USN-8022-1</a>
+            <a href="https://ubuntu.com/security/notices/USN-8023-1">https://ubuntu.com/security/notices/USN-8023-1</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2026-25210">https://www.cve.org/CVERecord?id=CVE-2026-25210</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">libexpat1</td>
+        <td>CVE-2023-52426</td>
+        <td class="severity">LOW</td>
+        <td>2.5.0-1+deb12u2</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            libexpat through 2.5.0 allows recursive XML Entity Expansion if XML_DTD is undefined at compile time.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2023-52426">https://access.redhat.com/security/cve/CVE-2023-52426</a>
+            <a href="https://cwe.mitre.org/data/definitions/776.html">https://cwe.mitre.org/data/definitions/776.html</a>
+            <a href="https://github.com/libexpat/libexpat/commit/0f075ec8ecb5e43f8fdca5182f8cca4703da0404">https://github.com/libexpat/libexpat/commit/0f075ec8ecb5e43f8fdca5182f8cca4703da0404</a>
+            <a href="https://github.com/libexpat/libexpat/pull/777">https://github.com/libexpat/libexpat/pull/777</a>
+            <a href="https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/PNRIHC7DVVRAIWFRGV23Y6UZXFBXSQDB/">https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/PNRIHC7DVVRAIWFRGV23Y6UZXFBXSQDB/</a>
+            <a href="https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/WNUBSGZFEZOBHJFTAD42SAN4ATW2VEMV/">https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/WNUBSGZFEZOBHJFTAD42SAN4ATW2VEMV/</a>
+            <a href="https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/PNRIHC7DVVRAIWFRGV23Y6UZXFBXSQDB/">https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/PNRIHC7DVVRAIWFRGV23Y6UZXFBXSQDB/</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2023-52426">https://nvd.nist.gov/vuln/detail/CVE-2023-52426</a>
+            <a href="https://security.netapp.com/advisory/ntap-20240307-0005/">https://security.netapp.com/advisory/ntap-20240307-0005/</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2023-52426">https://www.cve.org/CVERecord?id=CVE-2023-52426</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">libexpat1</td>
+        <td>CVE-2024-28757</td>
+        <td class="severity">LOW</td>
+        <td>2.5.0-1+deb12u2</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            libexpat through 2.6.1 allows an XML Entity Expansion attack when there is isolated use of external parsers (created via XML_ExternalEntityParserCreate).
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.openwall.com/lists/oss-security/2024/03/15/1">http://www.openwall.com/lists/oss-security/2024/03/15/1</a>
+            <a href="https://access.redhat.com/errata/RHSA-2024:1530">https://access.redhat.com/errata/RHSA-2024:1530</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2024-28757">https://access.redhat.com/security/cve/CVE-2024-28757</a>
+            <a href="https://bugzilla.redhat.com/2262877">https://bugzilla.redhat.com/2262877</a>
+            <a href="https://bugzilla.redhat.com/2268766">https://bugzilla.redhat.com/2268766</a>
+            <a href="https://errata.almalinux.org/9/ALSA-2024-1530.html">https://errata.almalinux.org/9/ALSA-2024-1530.html</a>
+            <a href="https://github.com/libexpat/libexpat/issues/839">https://github.com/libexpat/libexpat/issues/839</a>
+            <a href="https://github.com/libexpat/libexpat/pull/842">https://github.com/libexpat/libexpat/pull/842</a>
+            <a href="https://linux.oracle.com/cve/CVE-2024-28757.html">https://linux.oracle.com/cve/CVE-2024-28757.html</a>
+            <a href="https://linux.oracle.com/errata/ELSA-2024-1530.html">https://linux.oracle.com/errata/ELSA-2024-1530.html</a>
+            <a href="https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/FPLC6WDSRDUYS7F7JWAOVOHFNOUQ43DD/">https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/FPLC6WDSRDUYS7F7JWAOVOHFNOUQ43DD/</a>
+            <a href="https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/LKJ7V5F6LJCEQJXDBWGT27J7NAP3E3N7/">https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/LKJ7V5F6LJCEQJXDBWGT27J7NAP3E3N7/</a>
+            <a href="https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/VK2O34GH43NTHBZBN7G5Y6YKJKPUCTBE/">https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/VK2O34GH43NTHBZBN7G5Y6YKJKPUCTBE/</a>
+            <a href="https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/FPLC6WDSRDUYS7F7JWAOVOHFNOUQ43DD/">https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/FPLC6WDSRDUYS7F7JWAOVOHFNOUQ43DD/</a>
+            <a href="https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/LKJ7V5F6LJCEQJXDBWGT27J7NAP3E3N7/">https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/LKJ7V5F6LJCEQJXDBWGT27J7NAP3E3N7/</a>
+            <a href="https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/VK2O34GH43NTHBZBN7G5Y6YKJKPUCTBE/">https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/VK2O34GH43NTHBZBN7G5Y6YKJKPUCTBE/</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2024-28757">https://nvd.nist.gov/vuln/detail/CVE-2024-28757</a>
+            <a href="https://security.netapp.com/advisory/ntap-20240322-0001/">https://security.netapp.com/advisory/ntap-20240322-0001/</a>
+            <a href="https://ubuntu.com/security/notices/USN-6694-1">https://ubuntu.com/security/notices/USN-6694-1</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2024-28757">https://www.cve.org/CVERecord?id=CVE-2024-28757</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">libexpat1</td>
+        <td>CVE-2026-24515</td>
+        <td class="severity">LOW</td>
+        <td>2.5.0-1+deb12u2</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            In libexpat before 2.7.4, XML_ExternalEntityParserCreate does not copy unknown encoding handler user data.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2026-24515">https://access.redhat.com/security/cve/CVE-2026-24515</a>
+            <a href="https://github.com/libexpat/libexpat/pull/1131">https://github.com/libexpat/libexpat/pull/1131</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2026-24515">https://nvd.nist.gov/vuln/detail/CVE-2026-24515</a>
+            <a href="https://ubuntu.com/security/notices/USN-8022-1">https://ubuntu.com/security/notices/USN-8022-1</a>
+            <a href="https://ubuntu.com/security/notices/USN-8023-1">https://ubuntu.com/security/notices/USN-8023-1</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2026-24515">https://www.cve.org/CVERecord?id=CVE-2026-24515</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">libgcc-s1</td>
+        <td>CVE-2022-27943</td>
+        <td class="severity">LOW</td>
+        <td>12.2.0-14+deb12u1</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            libiberty/rust-demangle.c in GNU GCC 11.2 allows stack consumption in demangle_const, as demonstrated by nm-new.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2022-27943">https://access.redhat.com/security/cve/CVE-2022-27943</a>
+            <a href="https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105039">https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105039</a>
+            <a href="https://gcc.gnu.org/git/gitweb.cgi?p=gcc.git;h=1a770b01ef415e114164b6151d1e55acdee09371">https://gcc.gnu.org/git/gitweb.cgi?p=gcc.git;h=1a770b01ef415e114164b6151d1e55acdee09371</a>
+            <a href="https://gcc.gnu.org/git/gitweb.cgi?p=gcc.git;h=9234cdca6ee88badfc00297e72f13dac4e540c79">https://gcc.gnu.org/git/gitweb.cgi?p=gcc.git;h=9234cdca6ee88badfc00297e72f13dac4e540c79</a>
+            <a href="https://gcc.gnu.org/git/gitweb.cgi?p=gcc.git;h=fc968115a742d9e4674d9725ce9c2106b91b6ead">https://gcc.gnu.org/git/gitweb.cgi?p=gcc.git;h=fc968115a742d9e4674d9725ce9c2106b91b6ead</a>
+            <a href="https://gcc.gnu.org/pipermail/gcc-patches/2022-March/592244.html">https://gcc.gnu.org/pipermail/gcc-patches/2022-March/592244.html</a>
+            <a href="https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/H424YXGW7OKXS2NCAP35OP6Y4P4AW6VG/">https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/H424YXGW7OKXS2NCAP35OP6Y4P4AW6VG/</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2022-27943">https://nvd.nist.gov/vuln/detail/CVE-2022-27943</a>
+            <a href="https://sourceware.org/bugzilla/show_bug.cgi?id=28995">https://sourceware.org/bugzilla/show_bug.cgi?id=28995</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2022-27943">https://www.cve.org/CVERecord?id=CVE-2022-27943</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">liblcms2-2</td>
+        <td>CVE-2025-29070</td>
+        <td class="severity">LOW</td>
+        <td>2.14-2</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            A heap buffer overflow vulnerability has been identified in thesmooth2() in cmsgamma.c in lcms2-2.16 which allows a remote attacker to cause a denial of service. NOTE: the Supplier disputes this because &#34;this is not exploitable as this function is never called on normal color management, is there only as a helper for low-level programming and investigation.&#34;
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://github.com/mm2/Little-CMS/issues/475">https://github.com/mm2/Little-CMS/issues/475</a>
+            <a href="https://github.com/mm2/Little-CMS/issues/475#issuecomment-2696785063">https://github.com/mm2/Little-CMS/issues/475#issuecomment-2696785063</a>
+        </td>
+      </tr>
+      <tr class="severity-HIGH">
+        <td class="pkg-name">libpng16-16</td>
+        <td>CVE-2026-22695</td>
+        <td class="severity">HIGH</td>
+        <td>1.6.39-2+deb12u1</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            LIBPNG is a reference library for use in applications that read, create, and manipulate PNG (Portable Network Graphics) raster image files. From 1.6.51 to 1.6.53, there is a heap buffer over-read in the libpng simplified API function png_image_finish_read when processing interlaced 16-bit PNGs with 8-bit output format and non-minimal row stride. This is a regression introduced by the fix for CVE-2025-65018. This vulnerability is fixed in 1.6.54.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2026-22695">https://access.redhat.com/security/cve/CVE-2026-22695</a>
+            <a href="https://github.com/pnggroup/libpng/commit/218612ddd6b17944e21eda56caf8b4bf7779d1ea">https://github.com/pnggroup/libpng/commit/218612ddd6b17944e21eda56caf8b4bf7779d1ea</a>
+            <a href="https://github.com/pnggroup/libpng/commit/e4f7ad4ea2">https://github.com/pnggroup/libpng/commit/e4f7ad4ea2</a>
+            <a href="https://github.com/pnggroup/libpng/issues/778">https://github.com/pnggroup/libpng/issues/778</a>
+            <a href="https://github.com/pnggroup/libpng/security/advisories/GHSA-mmq5-27w3-rxpp">https://github.com/pnggroup/libpng/security/advisories/GHSA-mmq5-27w3-rxpp</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2026-22695">https://nvd.nist.gov/vuln/detail/CVE-2026-22695</a>
+            <a href="https://ubuntu.com/security/notices/USN-7963-1">https://ubuntu.com/security/notices/USN-7963-1</a>
+            <a href="https://ubuntu.com/security/notices/USN-8035-1">https://ubuntu.com/security/notices/USN-8035-1</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2026-22695">https://www.cve.org/CVERecord?id=CVE-2026-22695</a>
+            <a href="https://www.openwall.com/lists/oss-security/2026/01/12/7">https://www.openwall.com/lists/oss-security/2026/01/12/7</a>
+        </td>
+      </tr>
+      <tr class="severity-HIGH">
+        <td class="pkg-name">libpng16-16</td>
+        <td>CVE-2026-22801</td>
+        <td class="severity">HIGH</td>
+        <td>1.6.39-2+deb12u1</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            LIBPNG is a reference library for use in applications that read, create, and manipulate PNG (Portable Network Graphics) raster image files. From 1.6.26 to 1.6.53, there is an integer truncation in the libpng simplified write API functions png_write_image_16bit and png_write_image_8bit causes heap buffer over-read when the caller provides a negative row stride (for bottom-up image layouts) or a stride exceeding 65535 bytes. The bug was introduced in libpng 1.6.26 (October 2016) by casts added to silence compiler warnings on 16-bit systems. This vulnerability is fixed in 1.6.54.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2026-22801">https://access.redhat.com/security/cve/CVE-2026-22801</a>
+            <a href="https://github.com/pnggroup/libpng/security/advisories/GHSA-vgjq-8cw5-ggw8">https://github.com/pnggroup/libpng/security/advisories/GHSA-vgjq-8cw5-ggw8</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2026-22801">https://nvd.nist.gov/vuln/detail/CVE-2026-22801</a>
+            <a href="https://ubuntu.com/security/notices/USN-7963-1">https://ubuntu.com/security/notices/USN-7963-1</a>
+            <a href="https://ubuntu.com/security/notices/USN-8035-1">https://ubuntu.com/security/notices/USN-8035-1</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2026-22801">https://www.cve.org/CVERecord?id=CVE-2026-22801</a>
+            <a href="https://www.openwall.com/lists/oss-security/2026/01/12/7">https://www.openwall.com/lists/oss-security/2026/01/12/7</a>
+        </td>
+      </tr>
+      <tr class="severity-HIGH">
+        <td class="pkg-name">libpng16-16</td>
+        <td>CVE-2026-25646</td>
+        <td class="severity">HIGH</td>
+        <td>1.6.39-2+deb12u1</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            LIBPNG is a reference library for use in applications that read, create, and manipulate PNG (Portable Network Graphics) raster image files. Prior to 1.6.55, an out-of-bounds read vulnerability exists in the png_set_quantize() API function. When the function is called with no histogram and the number of colors in the palette is more than twice the maximum supported by the user&#39;s display, certain palettes will cause the function to enter into an infinite loop that reads past the end of an internal heap-allocated buffer. The images that trigger this vulnerability are valid per the PNG specification. This vulnerability is fixed in 1.6.55.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.openwall.com/lists/oss-security/2026/02/09/7">http://www.openwall.com/lists/oss-security/2026/02/09/7</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2026-25646">https://access.redhat.com/security/cve/CVE-2026-25646</a>
+            <a href="https://github.com/pnggroup/libpng/commit/01d03b8453eb30ade759cd45c707e5a1c7277d88">https://github.com/pnggroup/libpng/commit/01d03b8453eb30ade759cd45c707e5a1c7277d88</a>
+            <a href="https://github.com/pnggroup/libpng/security/advisories/GHSA-g8hp-mq4h-rqm3">https://github.com/pnggroup/libpng/security/advisories/GHSA-g8hp-mq4h-rqm3</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2026-25646">https://nvd.nist.gov/vuln/detail/CVE-2026-25646</a>
+            <a href="https://ubuntu.com/security/notices/USN-8035-1">https://ubuntu.com/security/notices/USN-8035-1</a>
+            <a href="https://ubuntu.com/security/notices/USN-8039-1">https://ubuntu.com/security/notices/USN-8039-1</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2026-25646">https://www.cve.org/CVERecord?id=CVE-2026-25646</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">libpng16-16</td>
+        <td>CVE-2021-4214</td>
+        <td class="severity">LOW</td>
+        <td>1.6.39-2+deb12u1</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            A heap overflow flaw was found in libpngs&#39; pngimage.c program. This flaw allows an attacker with local network access to pass a specially crafted PNG file to the pngimage utility, causing an application to crash, leading to a denial of service.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2021-4214">https://access.redhat.com/security/cve/CVE-2021-4214</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2043393">https://bugzilla.redhat.com/show_bug.cgi?id=2043393</a>
+            <a href="https://github.com/glennrp/libpng/issues/302">https://github.com/glennrp/libpng/issues/302</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2021-4214">https://nvd.nist.gov/vuln/detail/CVE-2021-4214</a>
+            <a href="https://security-tracker.debian.org/tracker/CVE-2021-4214">https://security-tracker.debian.org/tracker/CVE-2021-4214</a>
+            <a href="https://security.netapp.com/advisory/ntap-20221020-0001/">https://security.netapp.com/advisory/ntap-20221020-0001/</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2021-4214">https://www.cve.org/CVERecord?id=CVE-2021-4214</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">libpng16-16</td>
+        <td>CVE-2025-28162</td>
+        <td class="severity">LOW</td>
+        <td>1.6.39-2+deb12u1</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            Buffer Overflow vulnerability in libpng 1.6.43-1.6.46 allows a local attacker to cause a denial of service via the pngimage with AddressSanitizer (ASan), the program leaks memory in various locations, eventually leading to high memory usage and causing the program to become unresponsive
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2025-28162">https://access.redhat.com/security/cve/CVE-2025-28162</a>
+            <a href="https://gist.github.com/kittener/fbfdb9b5610c6b3db0d5dea045a07c60">https://gist.github.com/kittener/fbfdb9b5610c6b3db0d5dea045a07c60</a>
+            <a href="https://github.com/pnggroup/libpng/issues/656">https://github.com/pnggroup/libpng/issues/656</a>
+            <a href="https://github.com/pnggroup/libpng/pull/657">https://github.com/pnggroup/libpng/pull/657</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-28162">https://nvd.nist.gov/vuln/detail/CVE-2025-28162</a>
+            <a href="https://ubuntu.com/security/notices/USN-7993-1">https://ubuntu.com/security/notices/USN-7993-1</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-28162">https://www.cve.org/CVERecord?id=CVE-2025-28162</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">libpng16-16</td>
+        <td>CVE-2025-28164</td>
+        <td class="severity">LOW</td>
+        <td>1.6.39-2+deb12u1</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            Buffer Overflow vulnerability in libpng 1.6.43-1.6.46 allows a local attacker to cause a denial of service via png_create_read_struct() function.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2025-28164">https://access.redhat.com/security/cve/CVE-2025-28164</a>
+            <a href="https://gist.github.com/kittener/506516f8c22178005b4379c8b2a7de20">https://gist.github.com/kittener/506516f8c22178005b4379c8b2a7de20</a>
+            <a href="https://github.com/pnggroup/libpng/issues/655">https://github.com/pnggroup/libpng/issues/655</a>
+            <a href="https://github.com/pnggroup/libpng/pull/657">https://github.com/pnggroup/libpng/pull/657</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-28164">https://nvd.nist.gov/vuln/detail/CVE-2025-28164</a>
+            <a href="https://ubuntu.com/security/notices/USN-7993-1">https://ubuntu.com/security/notices/USN-7993-1</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-28164">https://www.cve.org/CVERecord?id=CVE-2025-28164</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">libstdc++6</td>
+        <td>CVE-2022-27943</td>
+        <td class="severity">LOW</td>
+        <td>12.2.0-14+deb12u1</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            libiberty/rust-demangle.c in GNU GCC 11.2 allows stack consumption in demangle_const, as demonstrated by nm-new.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2022-27943">https://access.redhat.com/security/cve/CVE-2022-27943</a>
+            <a href="https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105039">https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105039</a>
+            <a href="https://gcc.gnu.org/git/gitweb.cgi?p=gcc.git;h=1a770b01ef415e114164b6151d1e55acdee09371">https://gcc.gnu.org/git/gitweb.cgi?p=gcc.git;h=1a770b01ef415e114164b6151d1e55acdee09371</a>
+            <a href="https://gcc.gnu.org/git/gitweb.cgi?p=gcc.git;h=9234cdca6ee88badfc00297e72f13dac4e540c79">https://gcc.gnu.org/git/gitweb.cgi?p=gcc.git;h=9234cdca6ee88badfc00297e72f13dac4e540c79</a>
+            <a href="https://gcc.gnu.org/git/gitweb.cgi?p=gcc.git;h=fc968115a742d9e4674d9725ce9c2106b91b6ead">https://gcc.gnu.org/git/gitweb.cgi?p=gcc.git;h=fc968115a742d9e4674d9725ce9c2106b91b6ead</a>
+            <a href="https://gcc.gnu.org/pipermail/gcc-patches/2022-March/592244.html">https://gcc.gnu.org/pipermail/gcc-patches/2022-March/592244.html</a>
+            <a href="https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/H424YXGW7OKXS2NCAP35OP6Y4P4AW6VG/">https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/H424YXGW7OKXS2NCAP35OP6Y4P4AW6VG/</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2022-27943">https://nvd.nist.gov/vuln/detail/CVE-2022-27943</a>
+            <a href="https://sourceware.org/bugzilla/show_bug.cgi?id=28995">https://sourceware.org/bugzilla/show_bug.cgi?id=28995</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2022-27943">https://www.cve.org/CVERecord?id=CVE-2022-27943</a>
+        </td>
+      </tr>
+      <tr class="severity-MEDIUM">
+        <td class="pkg-name">libuuid1</td>
+        <td>CVE-2025-14104</td>
+        <td class="severity">MEDIUM</td>
+        <td>2.38.1-5+deb12u3</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            A flaw was found in util-linux. This vulnerability allows a heap buffer overread when processing 256-byte usernames, specifically within the `setpwnam()` function, affecting SUID (Set User ID) login-utils utilities writing to the password database.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/errata/RHSA-2026:1696">https://access.redhat.com/errata/RHSA-2026:1696</a>
+            <a href="https://access.redhat.com/errata/RHSA-2026:1852">https://access.redhat.com/errata/RHSA-2026:1852</a>
+            <a href="https://access.redhat.com/errata/RHSA-2026:1913">https://access.redhat.com/errata/RHSA-2026:1913</a>
+            <a href="https://access.redhat.com/errata/RHSA-2026:2485">https://access.redhat.com/errata/RHSA-2026:2485</a>
+            <a href="https://access.redhat.com/errata/RHSA-2026:2563">https://access.redhat.com/errata/RHSA-2026:2563</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2025-14104">https://access.redhat.com/security/cve/CVE-2025-14104</a>
+            <a href="https://bugzilla.redhat.com/2419369">https://bugzilla.redhat.com/2419369</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2419369">https://bugzilla.redhat.com/show_bug.cgi?id=2419369</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-14104">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-14104</a>
+            <a href="https://errata.almalinux.org/10/ALSA-2026-1696.html">https://errata.almalinux.org/10/ALSA-2026-1696.html</a>
+            <a href="https://errata.rockylinux.org/RLSA-2026:1913">https://errata.rockylinux.org/RLSA-2026:1913</a>
+            <a href="https://linux.oracle.com/cve/CVE-2025-14104.html">https://linux.oracle.com/cve/CVE-2025-14104.html</a>
+            <a href="https://linux.oracle.com/errata/ELSA-2026-1913.html">https://linux.oracle.com/errata/ELSA-2026-1913.html</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-14104">https://nvd.nist.gov/vuln/detail/CVE-2025-14104</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-14104">https://www.cve.org/CVERecord?id=CVE-2025-14104</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">libuuid1</td>
+        <td>CVE-2022-0563</td>
+        <td class="severity">LOW</td>
+        <td>2.38.1-5+deb12u3</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            A flaw was found in the util-linux chfn and chsh utilities when compiled with Readline support. The Readline library uses an &#34;INPUTRC&#34; environment variable to get a path to the library config file. When the library cannot parse the specified file, it prints an error message containing data from the file. This flaw allows an unprivileged user to read root-owned files, potentially leading to privilege escalation. This flaw affects util-linux versions prior to 2.37.4.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2022-0563">https://access.redhat.com/security/cve/CVE-2022-0563</a>
+            <a href="https://blog.trailofbits.com/2023/02/16/suid-logic-bug-linux-readline/">https://blog.trailofbits.com/2023/02/16/suid-logic-bug-linux-readline/</a>
+            <a href="https://lore.kernel.org/util-linux/20220214110609.msiwlm457ngoic6w%40ws.net.home/T/#u">https://lore.kernel.org/util-linux/20220214110609.msiwlm457ngoic6w%40ws.net.home/T/#u</a>
+            <a href="https://lore.kernel.org/util-linux/20220214110609.msiwlm457ngoic6w@ws.net.home/T/#u">https://lore.kernel.org/util-linux/20220214110609.msiwlm457ngoic6w@ws.net.home/T/#u</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2022-0563">https://nvd.nist.gov/vuln/detail/CVE-2022-0563</a>
+            <a href="https://security.gentoo.org/glsa/202401-08">https://security.gentoo.org/glsa/202401-08</a>
+            <a href="https://security.netapp.com/advisory/ntap-20220331-0002/">https://security.netapp.com/advisory/ntap-20220331-0002/</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2022-0563">https://www.cve.org/CVERecord?id=CVE-2022-0563</a>
+        </td>
+      </tr>
+      <tr class="severity-CRITICAL">
+        <td class="pkg-name">zlib1g</td>
+        <td>CVE-2023-45853</td>
+        <td class="severity">CRITICAL</td>
+        <td>1:1.2.13.dfsg-1</td>
+        <td></td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            MiniZip in zlib through 1.3 has an integer overflow and resultant heap-based buffer overflow in zipOpenNewFileInZip4_64 via a long filename, comment, or extra field. NOTE: MiniZip is not a supported part of the zlib product. NOTE: pyminizip through 0.2.6 is also vulnerable because it bundles an affected zlib version, and exposes the applicable MiniZip code through its compress API.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.openwall.com/lists/oss-security/2023/10/20/9">http://www.openwall.com/lists/oss-security/2023/10/20/9</a>
+            <a href="http://www.openwall.com/lists/oss-security/2024/01/24/10">http://www.openwall.com/lists/oss-security/2024/01/24/10</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2023-45853">https://access.redhat.com/security/cve/CVE-2023-45853</a>
+            <a href="https://chromium.googlesource.com/chromium/src/+/d709fb23806858847131027da95ef4c548813356">https://chromium.googlesource.com/chromium/src/+/d709fb23806858847131027da95ef4c548813356</a>
+            <a href="https://chromium.googlesource.com/chromium/src/+/de29dd6c7151d3cd37cb4cf0036800ddfb1d8b61">https://chromium.googlesource.com/chromium/src/+/de29dd6c7151d3cd37cb4cf0036800ddfb1d8b61</a>
+            <a href="https://github.com/madler/zlib/blob/ac8f12c97d1afd9bafa9c710f827d40a407d3266/contrib/README.contrib#L1-L4">https://github.com/madler/zlib/blob/ac8f12c97d1afd9bafa9c710f827d40a407d3266/contrib/README.contrib#L1-L4</a>
+            <a href="https://github.com/madler/zlib/commit/73331a6a0481067628f065ffe87bb1d8f787d10c">https://github.com/madler/zlib/commit/73331a6a0481067628f065ffe87bb1d8f787d10c</a>
+            <a href="https://github.com/madler/zlib/pull/843">https://github.com/madler/zlib/pull/843</a>
+            <a href="https://github.com/smihica/pyminizip">https://github.com/smihica/pyminizip</a>
+            <a href="https://github.com/smihica/pyminizip/blob/master/zlib-1.2.11/contrib/minizip/zip.c">https://github.com/smihica/pyminizip/blob/master/zlib-1.2.11/contrib/minizip/zip.c</a>
+            <a href="https://lists.debian.org/debian-lts-announce/2023/11/msg00026.html">https://lists.debian.org/debian-lts-announce/2023/11/msg00026.html</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2023-45853">https://nvd.nist.gov/vuln/detail/CVE-2023-45853</a>
+            <a href="https://pypi.org/project/pyminizip/#history">https://pypi.org/project/pyminizip/#history</a>
+            <a href="https://security.gentoo.org/glsa/202401-18">https://security.gentoo.org/glsa/202401-18</a>
+            <a href="https://security.netapp.com/advisory/ntap-20231130-0009">https://security.netapp.com/advisory/ntap-20231130-0009</a>
+            <a href="https://security.netapp.com/advisory/ntap-20231130-0009/">https://security.netapp.com/advisory/ntap-20231130-0009/</a>
+            <a href="https://ubuntu.com/security/notices/USN-7107-1">https://ubuntu.com/security/notices/USN-7107-1</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2023-45853">https://www.cve.org/CVERecord?id=CVE-2023-45853</a>
+            <a href="https://www.winimage.com/zLibDll/minizip.html">https://www.winimage.com/zLibDll/minizip.html</a>
+        </td>
+      </tr>
+      <tr><th colspan="7">No Misconfigurations found</th></tr>
+      <tr class="group-header"><th colspan="7">jar</th></tr>
+      <tr class="sub-header">
+        <th>Package</th>
+        <th>Vuln ID</th>
+        <th>Severity</th>
+        <th>Installed</th>
+        <th>Fixed</th>
+        <th>Description</th>
+        <th>Links</th>
+      </tr>
+      <tr class="severity-MEDIUM">
+        <td class="pkg-name">ch.qos.logback:logback-core</td>
+        <td>CVE-2024-12798</td>
+        <td class="severity">MEDIUM</td>
+        <td>1.5.11</td>
+        <td>1.5.13, 1.3.15</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            ACE vulnerability in JaninoEventEvaluator  by QOS.CH logback-core&#xA;      upto including version 0.1 to 1.3.14 and 1.4.0 to 1.5.12 in Java applications allows&#xA;      attacker to execute arbitrary code by compromising an existing&#xA;      logback configuration file or by injecting an environment variable&#xA;      before program execution.&#xA;&#xA;&#xA;&#xA;&#xA;&#xA;Malicious logback configuration files can allow the attacker to execute &#xA;arbitrary code using the JaninoEventEvaluator extension.&#xA;&#xA;&#xA;&#xA;A successful attack requires the user to have write access to a &#xA;configuration file. Alternatively, the attacker could inject a malicious &#xA;environment variable pointing to a malicious configuration file. In both &#xA;cases, the attack requires existing privilege.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2024-12798">https://access.redhat.com/security/cve/CVE-2024-12798</a>
+            <a href="https://github.com/qos-ch/logback">https://github.com/qos-ch/logback</a>
+            <a href="https://github.com/qos-ch/logback/commit/2cb6d520df7592ef1c3a198f1b5df3c10c93e183">https://github.com/qos-ch/logback/commit/2cb6d520df7592ef1c3a198f1b5df3c10c93e183</a>
+            <a href="https://logback.qos.ch/news.html#1.3.15">https://logback.qos.ch/news.html#1.3.15</a>
+            <a href="https://logback.qos.ch/news.html#1.5.13">https://logback.qos.ch/news.html#1.5.13</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2024-12798">https://nvd.nist.gov/vuln/detail/CVE-2024-12798</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2024-12798">https://www.cve.org/CVERecord?id=CVE-2024-12798</a>
+        </td>
+      </tr>
+      <tr class="severity-MEDIUM">
+        <td class="pkg-name">ch.qos.logback:logback-core</td>
+        <td>CVE-2025-11226</td>
+        <td class="severity">MEDIUM</td>
+        <td>1.5.11</td>
+        <td>1.5.19, 1.3.16</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            ACE vulnerability in conditional configuration file processing  by QOS.CH logback-core up to and including version 1.5.18 in Java applications, allows an attacker to execute arbitrary code by compromising an existing logback configuration file or by injecting an environment variable before program execution.&#xA;&#xA;&#xA;&#xA;A successful attack requires the presence of Janino library and Spring Framework to be present on the user&#39;s class path. In addition, the attacker must  have write access to a &#xA;configuration file. Alternatively, the attacker could inject a malicious &#xA;environment variable pointing to a malicious configuration file. In both &#xA;cases, the attack requires existing privilege.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2025-11226">https://access.redhat.com/security/cve/CVE-2025-11226</a>
+            <a href="https://github.com/qos-ch/logback">https://github.com/qos-ch/logback</a>
+            <a href="https://github.com/qos-ch/logback/commit/61f6a2544f36b3016e0efd434ee21f19269f1df7">https://github.com/qos-ch/logback/commit/61f6a2544f36b3016e0efd434ee21f19269f1df7</a>
+            <a href="https://github.com/qos-ch/logback/issues/974">https://github.com/qos-ch/logback/issues/974</a>
+            <a href="https://github.com/qos-ch/logback/releases/tag/v_1.5.19">https://github.com/qos-ch/logback/releases/tag/v_1.5.19</a>
+            <a href="https://logback.qos.ch/news.html#1.3.16">https://logback.qos.ch/news.html#1.3.16</a>
+            <a href="https://logback.qos.ch/news.html#1.5.19">https://logback.qos.ch/news.html#1.5.19</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-11226">https://nvd.nist.gov/vuln/detail/CVE-2025-11226</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-11226">https://www.cve.org/CVERecord?id=CVE-2025-11226</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">ch.qos.logback:logback-core</td>
+        <td>CVE-2024-12801</td>
+        <td class="severity">LOW</td>
+        <td>1.5.11</td>
+        <td>1.5.13, 1.3.15</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            Server-Side Request Forgery (SSRF) in SaxEventRecorder by QOS.CH logback version 0.1 to 1.3.14 and 1.4.0 to 1.5.12  on the Java platform, allows an attacker to &#xA;forge requests by compromising logback configuration files in XML.&#xA;&#xA;&#xA;&#xA;The attacks involves the modification of DOCTYPE declaration in  XML configuration files.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2024-12801">https://access.redhat.com/security/cve/CVE-2024-12801</a>
+            <a href="https://github.com/qos-ch/logback">https://github.com/qos-ch/logback</a>
+            <a href="https://github.com/qos-ch/logback/commit/5f05041cba4c4ac0a62748c5c527a2da48999f2d">https://github.com/qos-ch/logback/commit/5f05041cba4c4ac0a62748c5c527a2da48999f2d</a>
+            <a href="https://logback.qos.ch/news.html#1.3.15">https://logback.qos.ch/news.html#1.3.15</a>
+            <a href="https://logback.qos.ch/news.html#1.5.13">https://logback.qos.ch/news.html#1.5.13</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2024-12801">https://nvd.nist.gov/vuln/detail/CVE-2024-12801</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2024-12801">https://www.cve.org/CVERecord?id=CVE-2024-12801</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">ch.qos.logback:logback-core</td>
+        <td>CVE-2026-1225</td>
+        <td class="severity">LOW</td>
+        <td>1.5.11</td>
+        <td>1.5.25</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            ACE vulnerability in configuration file processing  by QOS.CH logback-core up to and including version 1.5.24 in Java applications, allows an attacker to instantiate classes already present on the class path by compromising an existing logback configuration file.&#xA;&#xA;&#xA;&#xA;&#xA;The instantiation of a potentially malicious Java class requires that said class is present on the user&#39;s class-path. In addition, the attacker must  have write access to a &#xA;configuration file. However, after successful instantiation, the instance is very likely to be discarded with no further ado.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2026-1225">https://access.redhat.com/security/cve/CVE-2026-1225</a>
+            <a href="https://github.com/qos-ch/logback">https://github.com/qos-ch/logback</a>
+            <a href="https://github.com/qos-ch/logback/commit/1f97ae1844b1be8486e4e9cade98d7123d3eded5">https://github.com/qos-ch/logback/commit/1f97ae1844b1be8486e4e9cade98d7123d3eded5</a>
+            <a href="https://github.com/qos-ch/logback/issues/997">https://github.com/qos-ch/logback/issues/997</a>
+            <a href="https://logback.qos.ch/news.html#1.5.25">https://logback.qos.ch/news.html#1.5.25</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2026-1225">https://nvd.nist.gov/vuln/detail/CVE-2026-1225</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2026-1225">https://www.cve.org/CVERecord?id=CVE-2026-1225</a>
+        </td>
+      </tr>
+      <tr class="severity-MEDIUM">
+        <td class="pkg-name">org.apache.commons:commons-lang3</td>
+        <td>CVE-2025-48924</td>
+        <td class="severity">MEDIUM</td>
+        <td>3.14.0</td>
+        <td>3.18.0</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            Uncontrolled Recursion vulnerability in Apache Commons Lang.&#xA;&#xA;This issue affects Apache Commons Lang: Starting with commons-lang:commons-lang 2.0 to 2.6, and, from org.apache.commons:commons-lang3 3.0 before 3.18.0.&#xA;&#xA;The methods ClassUtils.getClass(...) can throw StackOverflowError on very long inputs. Because an Error is usually not handled by applications and libraries, a &#xA;StackOverflowError could cause an application to stop.&#xA;&#xA;Users are recommended to upgrade to version 3.18.0, which fixes the issue.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.openwall.com/lists/oss-security/2025/07/11/1">http://www.openwall.com/lists/oss-security/2025/07/11/1</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2025-48924">https://access.redhat.com/security/cve/CVE-2025-48924</a>
+            <a href="https://github.com/apache/commons-lang">https://github.com/apache/commons-lang</a>
+            <a href="https://github.com/apache/commons-lang/commit/b424803abdb2bec818e4fbcb251ce031c22aca53">https://github.com/apache/commons-lang/commit/b424803abdb2bec818e4fbcb251ce031c22aca53</a>
+            <a href="https://lists.apache.org/thread/bgv0lpswokgol11tloxnjfzdl7yrc1g1">https://lists.apache.org/thread/bgv0lpswokgol11tloxnjfzdl7yrc1g1</a>
+            <a href="https://lists.debian.org/debian-lts-announce/2025/08/msg00000.html">https://lists.debian.org/debian-lts-announce/2025/08/msg00000.html</a>
+            <a href="https://lists.debian.org/debian-lts-announce/2025/08/msg00026.html">https://lists.debian.org/debian-lts-announce/2025/08/msg00026.html</a>
+            <a href="https://lists.debian.org/debian-lts-announce/2025/09/msg00032.html">https://lists.debian.org/debian-lts-announce/2025/09/msg00032.html</a>
+            <a href="https://lists.debian.org/debian-lts-announce/2025/09/msg00036.html">https://lists.debian.org/debian-lts-announce/2025/09/msg00036.html</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-48924">https://nvd.nist.gov/vuln/detail/CVE-2025-48924</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-48924">https://www.cve.org/CVERecord?id=CVE-2025-48924</a>
+            <a href="https://www.openwall.com/lists/oss-security/2025/07/11/1">https://www.openwall.com/lists/oss-security/2025/07/11/1</a>
+        </td>
+      </tr>
+      <tr class="severity-CRITICAL">
+        <td class="pkg-name">org.apache.tomcat.embed:tomcat-embed-core</td>
+        <td>CVE-2025-24813</td>
+        <td class="severity">CRITICAL</td>
+        <td>10.1.31</td>
+        <td>11.0.3, 10.1.35, 9.0.99</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            Path Equivalence: &#39;file.Name&#39; (Internal Dot) leading to Remote Code Execution and/or Information disclosure and/or malicious content added to uploaded files via write enabled Default Servlet in Apache Tomcat.&#xA;&#xA;This issue affects Apache Tomcat: from 11.0.0-M1 through 11.0.2, from 10.1.0-M1 through 10.1.34, from 9.0.0.M1 through 9.0.98.&#xA;The following versions were EOL at the time the CVE was created but are &#xA;known to be affected: 8.5.0 though 8.5.100. Other, older, EOL versions &#xA;may also be affected.&#xA;&#xA;&#xA;If all of the following were true, a malicious user was able to view       security sensitive files and/or inject content into those files:&#xA;- writes enabled for the default servlet (disabled by default)&#xA;- support for partial PUT (enabled by default)&#xA;- a target URL for security sensitive uploads that was a sub-directory of a target URL for public uploads&#xA;- attacker knowledge of the names of security sensitive files being uploaded&#xA;- the security sensitive files also being uploaded via partial PUT&#xA;&#xA;If all of the following were true, a malicious user was able to       perform remote code execution:&#xA;- writes enabled for the default servlet (disabled by default)&#xA;- support for partial PUT (enabled by default)&#xA;- application was using Tomcat&#39;s file based session persistence with the default storage location&#xA;- application included a library that may be leveraged in a deserialization attack&#xA;&#xA;Users are recommended to upgrade to version 11.0.3, 10.1.35 or 9.0.99, which fixes the issue.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.openwall.com/lists/oss-security/2025/03/10/5">http://www.openwall.com/lists/oss-security/2025/03/10/5</a>
+            <a href="https://access.redhat.com/errata/RHSA-2025:3645">https://access.redhat.com/errata/RHSA-2025:3645</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2025-24813">https://access.redhat.com/security/cve/CVE-2025-24813</a>
+            <a href="https://bugzilla.redhat.com/2332817">https://bugzilla.redhat.com/2332817</a>
+            <a href="https://bugzilla.redhat.com/2351129">https://bugzilla.redhat.com/2351129</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2332817">https://bugzilla.redhat.com/show_bug.cgi?id=2332817</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2351129">https://bugzilla.redhat.com/show_bug.cgi?id=2351129</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-50379">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-50379</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-24813">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-24813</a>
+            <a href="https://errata.almalinux.org/9/ALSA-2025-3645.html">https://errata.almalinux.org/9/ALSA-2025-3645.html</a>
+            <a href="https://errata.rockylinux.org/RLSA-2025:3645">https://errata.rockylinux.org/RLSA-2025:3645</a>
+            <a href="https://github.com/absholi7ly/POC-CVE-2025-24813/blob/main/README.md">https://github.com/absholi7ly/POC-CVE-2025-24813/blob/main/README.md</a>
+            <a href="https://github.com/apache/tomcat">https://github.com/apache/tomcat</a>
+            <a href="https://github.com/apache/tomcat/commit/0a668e0c27f2b7ca0cc7c6eea32253b9b5ecb29c">https://github.com/apache/tomcat/commit/0a668e0c27f2b7ca0cc7c6eea32253b9b5ecb29c</a>
+            <a href="https://github.com/apache/tomcat/commit/eb61aade8f8daccaecabf07d428b877975622f72">https://github.com/apache/tomcat/commit/eb61aade8f8daccaecabf07d428b877975622f72</a>
+            <a href="https://github.com/apache/tomcat/commit/f6c01d6577cf9a1e06792be47e623d36acc3b5dc">https://github.com/apache/tomcat/commit/f6c01d6577cf9a1e06792be47e623d36acc3b5dc</a>
+            <a href="https://linux.oracle.com/cve/CVE-2025-24813.html">https://linux.oracle.com/cve/CVE-2025-24813.html</a>
+            <a href="https://linux.oracle.com/errata/ELSA-2025-7497.html">https://linux.oracle.com/errata/ELSA-2025-7497.html</a>
+            <a href="https://lists.apache.org/thread/j5fkjv2k477os90nczf2v9l61fb0kkgq">https://lists.apache.org/thread/j5fkjv2k477os90nczf2v9l61fb0kkgq</a>
+            <a href="https://lists.debian.org/debian-lts-announce/2025/04/msg00003.html">https://lists.debian.org/debian-lts-announce/2025/04/msg00003.html</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-24813">https://nvd.nist.gov/vuln/detail/CVE-2025-24813</a>
+            <a href="https://security.netapp.com/advisory/ntap-20250321-0001">https://security.netapp.com/advisory/ntap-20250321-0001</a>
+            <a href="https://security.netapp.com/advisory/ntap-20250321-0001/">https://security.netapp.com/advisory/ntap-20250321-0001/</a>
+            <a href="https://ubuntu.com/security/notices/USN-7525-1">https://ubuntu.com/security/notices/USN-7525-1</a>
+            <a href="https://ubuntu.com/security/notices/USN-7525-2">https://ubuntu.com/security/notices/USN-7525-2</a>
+            <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog">https://www.cisa.gov/known-exploited-vulnerabilities-catalog</a>
+            <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog?field_cve=CVE-2025-24813">https://www.cisa.gov/known-exploited-vulnerabilities-catalog?field_cve=CVE-2025-24813</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-24813">https://www.cve.org/CVERecord?id=CVE-2025-24813</a>
+            <a href="https://www.vicarius.io/vsociety/posts/cve-2025-24813-detect-apache-tomcat-rce">https://www.vicarius.io/vsociety/posts/cve-2025-24813-detect-apache-tomcat-rce</a>
+            <a href="https://www.vicarius.io/vsociety/posts/cve-2025-24813-mitigate-apache-tomcat-rce">https://www.vicarius.io/vsociety/posts/cve-2025-24813-mitigate-apache-tomcat-rce</a>
+            <a href="https://www.vicarius.io/vsociety/posts/cve-2025-24813-tomcat-detect-vulnerability">https://www.vicarius.io/vsociety/posts/cve-2025-24813-tomcat-detect-vulnerability</a>
+            <a href="https://www.vicarius.io/vsociety/posts/cve-2025-24813-tomcat-mitigation-vulnerability">https://www.vicarius.io/vsociety/posts/cve-2025-24813-tomcat-mitigation-vulnerability</a>
+        </td>
+      </tr>
+      <tr class="severity-HIGH">
+        <td class="pkg-name">org.apache.tomcat.embed:tomcat-embed-core</td>
+        <td>CVE-2024-50379</td>
+        <td class="severity">HIGH</td>
+        <td>10.1.31</td>
+        <td>11.0.2, 10.1.34, 9.0.98</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            Time-of-check Time-of-use (TOCTOU) Race Condition vulnerability during JSP compilation in Apache Tomcat permits an RCE on case insensitive file systems when the default servlet is enabled for write (non-default configuration).&#xA;&#xA;This issue affects Apache Tomcat: from 11.0.0-M1 through 11.0.1, from 10.1.0-M1 through 10.1.33, from 9.0.0.M1 through 9.0.97.&#xA;&#xA;The following versions were EOL at the time the CVE was created but are &#xA;known to be affected: 8.5.0 though 8.5.100. Other, older, EOL versions may also be affected.&#xA;&#xA;Users are recommended to upgrade to version 11.0.2, 10.1.34 or 9.0.98, which fixes the issue.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.openwall.com/lists/oss-security/2024/12/17/4">http://www.openwall.com/lists/oss-security/2024/12/17/4</a>
+            <a href="http://www.openwall.com/lists/oss-security/2024/12/18/2">http://www.openwall.com/lists/oss-security/2024/12/18/2</a>
+            <a href="https://access.redhat.com/errata/RHSA-2025:3645">https://access.redhat.com/errata/RHSA-2025:3645</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2024-50379">https://access.redhat.com/security/cve/CVE-2024-50379</a>
+            <a href="https://bugzilla.redhat.com/2332817">https://bugzilla.redhat.com/2332817</a>
+            <a href="https://bugzilla.redhat.com/2351129">https://bugzilla.redhat.com/2351129</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2332817">https://bugzilla.redhat.com/show_bug.cgi?id=2332817</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2351129">https://bugzilla.redhat.com/show_bug.cgi?id=2351129</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-50379">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-50379</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-24813">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-24813</a>
+            <a href="https://errata.almalinux.org/9/ALSA-2025-3645.html">https://errata.almalinux.org/9/ALSA-2025-3645.html</a>
+            <a href="https://errata.rockylinux.org/RLSA-2025:3645">https://errata.rockylinux.org/RLSA-2025:3645</a>
+            <a href="https://github.com/apache/tomcat">https://github.com/apache/tomcat</a>
+            <a href="https://github.com/apache/tomcat/commit/05ddeeaa54df1e2dc427d0164bedd6b79f78d81f">https://github.com/apache/tomcat/commit/05ddeeaa54df1e2dc427d0164bedd6b79f78d81f</a>
+            <a href="https://github.com/apache/tomcat/commit/05ddeeaa54df1e2dc427d0164bedd6b79f78d81f (10.1.34)">https://github.com/apache/tomcat/commit/05ddeeaa54df1e2dc427d0164bedd6b79f78d81f (10.1.34)</a>
+            <a href="https://github.com/apache/tomcat/commit/43b507ebac9d268b1ea3d908e296cc6e46795c00">https://github.com/apache/tomcat/commit/43b507ebac9d268b1ea3d908e296cc6e46795c00</a>
+            <a href="https://github.com/apache/tomcat/commit/43b507ebac9d268b1ea3d908e296cc6e46795c00 (9.0.98)">https://github.com/apache/tomcat/commit/43b507ebac9d268b1ea3d908e296cc6e46795c00 (9.0.98)</a>
+            <a href="https://github.com/apache/tomcat/commit/631500b0c9b2a2a2abb707e3de2e10a5936e5d41">https://github.com/apache/tomcat/commit/631500b0c9b2a2a2abb707e3de2e10a5936e5d41</a>
+            <a href="https://github.com/apache/tomcat/commit/631500b0c9b2a2a2abb707e3de2e10a5936e5d41 (9.0.98)">https://github.com/apache/tomcat/commit/631500b0c9b2a2a2abb707e3de2e10a5936e5d41 (9.0.98)</a>
+            <a href="https://github.com/apache/tomcat/commit/684247ae85fa633b9197b32391de59fc54703842">https://github.com/apache/tomcat/commit/684247ae85fa633b9197b32391de59fc54703842</a>
+            <a href="https://github.com/apache/tomcat/commit/8554f6b1722b33a2ce8b0a3fad37825f3a75f2d2">https://github.com/apache/tomcat/commit/8554f6b1722b33a2ce8b0a3fad37825f3a75f2d2</a>
+            <a href="https://github.com/apache/tomcat/commit/8554f6b1722b33a2ce8b0a3fad37825f3a75f2d2 (10.1.34)">https://github.com/apache/tomcat/commit/8554f6b1722b33a2ce8b0a3fad37825f3a75f2d2 (10.1.34)</a>
+            <a href="https://github.com/apache/tomcat/commit/cc7a98b57c6dc1df21979fcff94a36e068f4456c">https://github.com/apache/tomcat/commit/cc7a98b57c6dc1df21979fcff94a36e068f4456c</a>
+            <a href="https://linux.oracle.com/cve/CVE-2024-50379.html">https://linux.oracle.com/cve/CVE-2024-50379.html</a>
+            <a href="https://linux.oracle.com/errata/ELSA-2025-3683.html">https://linux.oracle.com/errata/ELSA-2025-3683.html</a>
+            <a href="https://lists.apache.org/thread/y6lj6q1xnp822g6ro70tn19sgtjmr80r">https://lists.apache.org/thread/y6lj6q1xnp822g6ro70tn19sgtjmr80r</a>
+            <a href="https://lists.debian.org/debian-lts-announce/2025/01/msg00009.html">https://lists.debian.org/debian-lts-announce/2025/01/msg00009.html</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2024-50379">https://nvd.nist.gov/vuln/detail/CVE-2024-50379</a>
+            <a href="https://security.netapp.com/advisory/ntap-20250103-0003">https://security.netapp.com/advisory/ntap-20250103-0003</a>
+            <a href="https://security.netapp.com/advisory/ntap-20250103-0003/">https://security.netapp.com/advisory/ntap-20250103-0003/</a>
+            <a href="https://tomcat.apache.org/security-10.html#Fixed_in_Apache_Tomcat_10.1.34">https://tomcat.apache.org/security-10.html#Fixed_in_Apache_Tomcat_10.1.34</a>
+            <a href="https://tomcat.apache.org/security-11.html#Fixed_in_Apache_Tomcat_11.0.2">https://tomcat.apache.org/security-11.html#Fixed_in_Apache_Tomcat_11.0.2</a>
+            <a href="https://tomcat.apache.org/security-9.html#Fixed_in_Apache_Tomcat_9.0.98">https://tomcat.apache.org/security-9.html#Fixed_in_Apache_Tomcat_9.0.98</a>
+            <a href="https://ubuntu.com/security/notices/USN-7705-1">https://ubuntu.com/security/notices/USN-7705-1</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2024-50379">https://www.cve.org/CVERecord?id=CVE-2024-50379</a>
+        </td>
+      </tr>
+      <tr class="severity-HIGH">
+        <td class="pkg-name">org.apache.tomcat.embed:tomcat-embed-core</td>
+        <td>CVE-2024-56337</td>
+        <td class="severity">HIGH</td>
+        <td>10.1.31</td>
+        <td>11.0.2, 10.1.34, 9.0.98</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            Time-of-check Time-of-use (TOCTOU) Race Condition vulnerability in Apache Tomcat.&#xA;&#xA;This issue affects Apache Tomcat: from 11.0.0-M1 through 11.0.1, from 10.1.0-M1 through 10.1.33, from 9.0.0.M1 through 9.0.97.&#xA;The following versions were EOL at the time the CVE was created but are &#xA;known to be affected: 8.5.0 though 8.5.100. Other, older, EOL versions &#xA;may also be affected.&#xA;&#xA;&#xA;The mitigation for CVE-2024-50379 was incomplete.&#xA;&#xA;Users running Tomcat on a case insensitive file system with the default servlet write enabled (readonly initialisation &#xA;parameter set to the non-default value of false) may need additional configuration to fully mitigate CVE-2024-50379 depending on which version of Java they are using with Tomcat:&#xA;- running on Java 8 or Java 11: the system property sun.io.useCanonCaches must be explicitly set to false (it defaults to true)&#xA;- running on Java 17: the system property sun.io.useCanonCaches, if set, must be set to false (it defaults to false)&#xA;- running on Java 21 onwards: no further configuration is required (the system property and the problematic cache have been removed)&#xA;&#xA;Tomcat 11.0.3, 10.1.35 and 9.0.99 onwards will include checks that sun.io.useCanonCaches is set appropriately before allowing the default servlet to be write enabled on a case insensitive file system. Tomcat will also set sun.io.useCanonCaches to false by default where it can.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/errata/RHSA-2025:11332">https://access.redhat.com/errata/RHSA-2025:11332</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2024-56337">https://access.redhat.com/security/cve/CVE-2024-56337</a>
+            <a href="https://bugzilla.redhat.com/2333521">https://bugzilla.redhat.com/2333521</a>
+            <a href="https://bugzilla.redhat.com/2362783">https://bugzilla.redhat.com/2362783</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2333521">https://bugzilla.redhat.com/show_bug.cgi?id=2333521</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2362783">https://bugzilla.redhat.com/show_bug.cgi?id=2362783</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-56337">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-56337</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-31650">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-31650</a>
+            <a href="https://errata.almalinux.org/10/ALSA-2025-11332.html">https://errata.almalinux.org/10/ALSA-2025-11332.html</a>
+            <a href="https://errata.rockylinux.org/RLSA-2025:11335">https://errata.rockylinux.org/RLSA-2025:11335</a>
+            <a href="https://github.com/apache/tomcat">https://github.com/apache/tomcat</a>
+            <a href="https://linux.oracle.com/cve/CVE-2024-56337.html">https://linux.oracle.com/cve/CVE-2024-56337.html</a>
+            <a href="https://linux.oracle.com/errata/ELSA-2025-11335.html">https://linux.oracle.com/errata/ELSA-2025-11335.html</a>
+            <a href="https://lists.apache.org/thread/b2b9qrgjrz1kvo4ym8y2wkfdvwoq6qbp">https://lists.apache.org/thread/b2b9qrgjrz1kvo4ym8y2wkfdvwoq6qbp</a>
+            <a href="https://lists.debian.org/debian-lts-announce/2025/01/msg00009.html">https://lists.debian.org/debian-lts-announce/2025/01/msg00009.html</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2024-56337">https://nvd.nist.gov/vuln/detail/CVE-2024-56337</a>
+            <a href="https://security.netapp.com/advisory/ntap-20250103-0002">https://security.netapp.com/advisory/ntap-20250103-0002</a>
+            <a href="https://security.netapp.com/advisory/ntap-20250103-0002/">https://security.netapp.com/advisory/ntap-20250103-0002/</a>
+            <a href="https://tomcat.apache.org/security-10.html#Fixed_in_Apache_Tomcat_10.1.34">https://tomcat.apache.org/security-10.html#Fixed_in_Apache_Tomcat_10.1.34</a>
+            <a href="https://tomcat.apache.org/security-11.html#Fixed_in_Apache_Tomcat_11.0.2">https://tomcat.apache.org/security-11.html#Fixed_in_Apache_Tomcat_11.0.2</a>
+            <a href="https://tomcat.apache.org/security-9.html#Fixed_in_Apache_Tomcat_9.0.98">https://tomcat.apache.org/security-9.html#Fixed_in_Apache_Tomcat_9.0.98</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2024-50379">https://www.cve.org/CVERecord?id=CVE-2024-50379</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2024-56337">https://www.cve.org/CVERecord?id=CVE-2024-56337</a>
+        </td>
+      </tr>
+      <tr class="severity-HIGH">
+        <td class="pkg-name">org.apache.tomcat.embed:tomcat-embed-core</td>
+        <td>CVE-2025-48988</td>
+        <td class="severity">HIGH</td>
+        <td>10.1.31</td>
+        <td>11.0.8, 10.1.42, 9.0.106</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            Allocation of Resources Without Limits or Throttling vulnerability in Apache Tomcat.&#xA;&#xA;This issue affects Apache Tomcat: from 11.0.0-M1 through 11.0.7, from 10.1.0-M1 through 10.1.41, from 9.0.0.M1 through 9.0.105.&#xA;The following versions were EOL at the time the CVE was created but are &#xA;known to be affected: 8.5.0 though 8.5.100. Other, older, EOL versions &#xA;may also be affected.&#xA;&#xA;&#xA;Users are recommended to upgrade to version 11.0.8, 10.1.42 or 9.0.106, which fix the issue.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.openwall.com/lists/oss-security/2025/06/16/1">http://www.openwall.com/lists/oss-security/2025/06/16/1</a>
+            <a href="https://access.redhat.com/errata/RHSA-2025:14178">https://access.redhat.com/errata/RHSA-2025:14178</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2025-48988">https://access.redhat.com/security/cve/CVE-2025-48988</a>
+            <a href="https://bugzilla.redhat.com/2373015">https://bugzilla.redhat.com/2373015</a>
+            <a href="https://bugzilla.redhat.com/2373018">https://bugzilla.redhat.com/2373018</a>
+            <a href="https://bugzilla.redhat.com/2373020">https://bugzilla.redhat.com/2373020</a>
+            <a href="https://bugzilla.redhat.com/2373309">https://bugzilla.redhat.com/2373309</a>
+            <a href="https://bugzilla.redhat.com/2379374">https://bugzilla.redhat.com/2379374</a>
+            <a href="https://bugzilla.redhat.com/2379382">https://bugzilla.redhat.com/2379382</a>
+            <a href="https://bugzilla.redhat.com/2379386">https://bugzilla.redhat.com/2379386</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2373015">https://bugzilla.redhat.com/show_bug.cgi?id=2373015</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2373018">https://bugzilla.redhat.com/show_bug.cgi?id=2373018</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2373020">https://bugzilla.redhat.com/show_bug.cgi?id=2373020</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2373309">https://bugzilla.redhat.com/show_bug.cgi?id=2373309</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2379374">https://bugzilla.redhat.com/show_bug.cgi?id=2379374</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2379382">https://bugzilla.redhat.com/show_bug.cgi?id=2379382</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2379386">https://bugzilla.redhat.com/show_bug.cgi?id=2379386</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-48976">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-48976</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-48988">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-48988</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-48989">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-48989</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-49125">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-49125</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-52434">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-52434</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-52520">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-52520</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-53506">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-53506</a>
+            <a href="https://errata.almalinux.org/10/ALSA-2025-14178.html">https://errata.almalinux.org/10/ALSA-2025-14178.html</a>
+            <a href="https://errata.rockylinux.org/RLSA-2025:14181">https://errata.rockylinux.org/RLSA-2025:14181</a>
+            <a href="https://github.com/apache/tomcat">https://github.com/apache/tomcat</a>
+            <a href="https://github.com/apache/tomcat/commit/2b0ab14fb55d4edc896e5f1817f2ab76f714ae5e">https://github.com/apache/tomcat/commit/2b0ab14fb55d4edc896e5f1817f2ab76f714ae5e</a>
+            <a href="https://github.com/apache/tomcat/commit/2b0ab14fb55d4edc896e5f1817f2ab76f714ae5e (11.0.8)">https://github.com/apache/tomcat/commit/2b0ab14fb55d4edc896e5f1817f2ab76f714ae5e (11.0.8)</a>
+            <a href="https://github.com/apache/tomcat/commit/cdde8e655bc1c5c60a07efd216251d77c52fd7f6">https://github.com/apache/tomcat/commit/cdde8e655bc1c5c60a07efd216251d77c52fd7f6</a>
+            <a href="https://github.com/apache/tomcat/commit/cdde8e655bc1c5c60a07efd216251d77c52fd7f6 (10.1.42)">https://github.com/apache/tomcat/commit/cdde8e655bc1c5c60a07efd216251d77c52fd7f6 (10.1.42)</a>
+            <a href="https://github.com/apache/tomcat/commit/ee8042ffce4cb9324dfd79efda5984f37bbb6910">https://github.com/apache/tomcat/commit/ee8042ffce4cb9324dfd79efda5984f37bbb6910</a>
+            <a href="https://github.com/apache/tomcat/commit/ee8042ffce4cb9324dfd79efda5984f37bbb6910 (9.0.106)">https://github.com/apache/tomcat/commit/ee8042ffce4cb9324dfd79efda5984f37bbb6910 (9.0.106)</a>
+            <a href="https://linux.oracle.com/cve/CVE-2025-48988.html">https://linux.oracle.com/cve/CVE-2025-48988.html</a>
+            <a href="https://linux.oracle.com/errata/ELSA-2025-14181.html">https://linux.oracle.com/errata/ELSA-2025-14181.html</a>
+            <a href="https://lists.apache.org/thread/nzkqsok8t42qofgqfmck536mtyzygp18">https://lists.apache.org/thread/nzkqsok8t42qofgqfmck536mtyzygp18</a>
+            <a href="https://lists.debian.org/debian-lts-announce/2025/07/msg00009.html">https://lists.debian.org/debian-lts-announce/2025/07/msg00009.html</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-48988">https://nvd.nist.gov/vuln/detail/CVE-2025-48988</a>
+            <a href="https://tomcat.apache.org/security-10.html">https://tomcat.apache.org/security-10.html</a>
+            <a href="https://tomcat.apache.org/security-11.html">https://tomcat.apache.org/security-11.html</a>
+            <a href="https://tomcat.apache.org/security-9.html">https://tomcat.apache.org/security-9.html</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-48988">https://www.cve.org/CVERecord?id=CVE-2025-48988</a>
+        </td>
+      </tr>
+      <tr class="severity-HIGH">
+        <td class="pkg-name">org.apache.tomcat.embed:tomcat-embed-core</td>
+        <td>CVE-2025-48989</td>
+        <td class="severity">HIGH</td>
+        <td>10.1.31</td>
+        <td>11.0.10, 10.1.44, 9.0.108</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            Improper Resource Shutdown or Release vulnerability in Apache Tomcat made Tomcat vulnerable to the made you reset attack.&#xA;&#xA;This issue affects Apache Tomcat: from 11.0.0-M1 through 11.0.9, from 10.1.0-M1 through 10.1.43 and from 9.0.0.M1 through 9.0.107. Older, EOL versions may also be affected.&#xA;&#xA;Users are recommended to upgrade to one of versions 11.0.10, 10.1.44 or 9.0.108 which fix the issue.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.openwall.com/lists/oss-security/2025/08/13/2">http://www.openwall.com/lists/oss-security/2025/08/13/2</a>
+            <a href="https://access.redhat.com/errata/RHSA-2025:14178">https://access.redhat.com/errata/RHSA-2025:14178</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2025-48989">https://access.redhat.com/security/cve/CVE-2025-48989</a>
+            <a href="https://bugzilla.redhat.com/2373015">https://bugzilla.redhat.com/2373015</a>
+            <a href="https://bugzilla.redhat.com/2373018">https://bugzilla.redhat.com/2373018</a>
+            <a href="https://bugzilla.redhat.com/2373020">https://bugzilla.redhat.com/2373020</a>
+            <a href="https://bugzilla.redhat.com/2373309">https://bugzilla.redhat.com/2373309</a>
+            <a href="https://bugzilla.redhat.com/2379374">https://bugzilla.redhat.com/2379374</a>
+            <a href="https://bugzilla.redhat.com/2379382">https://bugzilla.redhat.com/2379382</a>
+            <a href="https://bugzilla.redhat.com/2379386">https://bugzilla.redhat.com/2379386</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2373015">https://bugzilla.redhat.com/show_bug.cgi?id=2373015</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2373018">https://bugzilla.redhat.com/show_bug.cgi?id=2373018</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2373020">https://bugzilla.redhat.com/show_bug.cgi?id=2373020</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2373309">https://bugzilla.redhat.com/show_bug.cgi?id=2373309</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2379374">https://bugzilla.redhat.com/show_bug.cgi?id=2379374</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2379382">https://bugzilla.redhat.com/show_bug.cgi?id=2379382</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2379386">https://bugzilla.redhat.com/show_bug.cgi?id=2379386</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-48976">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-48976</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-48988">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-48988</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-48989">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-48989</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-49125">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-49125</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-52434">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-52434</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-52520">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-52520</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-53506">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-53506</a>
+            <a href="https://errata.almalinux.org/10/ALSA-2025-14178.html">https://errata.almalinux.org/10/ALSA-2025-14178.html</a>
+            <a href="https://errata.rockylinux.org/RLSA-2025:14181">https://errata.rockylinux.org/RLSA-2025:14181</a>
+            <a href="https://github.com/apache/tomcat">https://github.com/apache/tomcat</a>
+            <a href="https://github.com/apache/tomcat/commit/73c04a10395774bda71a0b37802cf983662ce255">https://github.com/apache/tomcat/commit/73c04a10395774bda71a0b37802cf983662ce255</a>
+            <a href="https://github.com/apache/tomcat/commit/73c04a10395774bda71a0b37802cf983662ce255 (10.1.44)">https://github.com/apache/tomcat/commit/73c04a10395774bda71a0b37802cf983662ce255 (10.1.44)</a>
+            <a href="https://github.com/apache/tomcat/commit/f362c8eb3b8ec5b7f312f7f5610731c0fb299a06">https://github.com/apache/tomcat/commit/f362c8eb3b8ec5b7f312f7f5610731c0fb299a06</a>
+            <a href="https://github.com/apache/tomcat/commit/f362c8eb3b8ec5b7f312f7f5610731c0fb299a06 (11.0.10)">https://github.com/apache/tomcat/commit/f362c8eb3b8ec5b7f312f7f5610731c0fb299a06 (11.0.10)</a>
+            <a href="https://github.com/apache/tomcat/commit/f36b8a4eea4ce8a0bc035079e1d259d29f5eb7bf">https://github.com/apache/tomcat/commit/f36b8a4eea4ce8a0bc035079e1d259d29f5eb7bf</a>
+            <a href="https://github.com/apache/tomcat/commit/f36b8a4eea4ce8a0bc035079e1d259d29f5eb7bf (9.0.108)">https://github.com/apache/tomcat/commit/f36b8a4eea4ce8a0bc035079e1d259d29f5eb7bf (9.0.108)</a>
+            <a href="https://kb.cert.org/vuls/id/767506">https://kb.cert.org/vuls/id/767506</a>
+            <a href="https://linux.oracle.com/cve/CVE-2025-48989.html">https://linux.oracle.com/cve/CVE-2025-48989.html</a>
+            <a href="https://linux.oracle.com/errata/ELSA-2025-14181.html">https://linux.oracle.com/errata/ELSA-2025-14181.html</a>
+            <a href="https://lists.apache.org/thread/9ydfg0xr0tchmglcprhxgwhj0hfwxlyf">https://lists.apache.org/thread/9ydfg0xr0tchmglcprhxgwhj0hfwxlyf</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-48989">https://nvd.nist.gov/vuln/detail/CVE-2025-48989</a>
+            <a href="https://tomcat.apache.org/security-10.html">https://tomcat.apache.org/security-10.html</a>
+            <a href="https://tomcat.apache.org/security-11.html">https://tomcat.apache.org/security-11.html</a>
+            <a href="https://tomcat.apache.org/security-9.html">https://tomcat.apache.org/security-9.html</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-48989">https://www.cve.org/CVERecord?id=CVE-2025-48989</a>
+            <a href="https://www.kb.cert.org/vuls/id/767506">https://www.kb.cert.org/vuls/id/767506</a>
+        </td>
+      </tr>
+      <tr class="severity-HIGH">
+        <td class="pkg-name">org.apache.tomcat.embed:tomcat-embed-core</td>
+        <td>CVE-2025-55752</td>
+        <td class="severity">HIGH</td>
+        <td>10.1.31</td>
+        <td>11.0.11, 10.1.45, 9.0.109</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            Relative Path Traversal vulnerability in Apache Tomcat.&#xA;&#xA;The fix for bug 60013 introduced a regression where the       rewritten URL was normalized before it was decoded. This introduced the       possibility that, for rewrite rules that rewrite query parameters to the       URL, an attacker could manipulate the request URI to bypass security       constraints including the protection for /WEB-INF/ and /META-INF/. If PUT requests were also enabled then malicious files could be uploaded leading to remote code execution. PUT requests are normally limited to trusted users and it is considered unlikely that PUT requests would be enabled in conjunction with a rewrite that manipulated the URI.&#xA;&#xA;&#xA;&#xA;This issue affects Apache Tomcat: from 11.0.0-M1 through 11.0.10, from 10.1.0-M1 through 10.1.44, from 9.0.0.M11 through 9.0.108.&#xA;&#xA;The following versions were EOL at the time the CVE was created but are &#xA;known to be affected: 8.5.6 though 8.5.100. Other, older, EOL versions may also be affected.&#xA;Users are recommended to upgrade to version 11.0.11 or later, 10.1.45 or later or 9.0.109 or later, which fix the issue.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.openwall.com/lists/oss-security/2025/10/27/4">http://www.openwall.com/lists/oss-security/2025/10/27/4</a>
+            <a href="https://access.redhat.com/errata/RHSA-2025:23052">https://access.redhat.com/errata/RHSA-2025:23052</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2025-55752">https://access.redhat.com/security/cve/CVE-2025-55752</a>
+            <a href="https://bugzilla.redhat.com/2362782">https://bugzilla.redhat.com/2362782</a>
+            <a href="https://bugzilla.redhat.com/2406591">https://bugzilla.redhat.com/2406591</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2362782">https://bugzilla.redhat.com/show_bug.cgi?id=2362782</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2406591">https://bugzilla.redhat.com/show_bug.cgi?id=2406591</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-31651">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-31651</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-55752">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-55752</a>
+            <a href="https://errata.almalinux.org/10/ALSA-2025-23052.html">https://errata.almalinux.org/10/ALSA-2025-23052.html</a>
+            <a href="https://errata.rockylinux.org/RLSA-2025:23049">https://errata.rockylinux.org/RLSA-2025:23049</a>
+            <a href="https://github.com/apache/tomcat">https://github.com/apache/tomcat</a>
+            <a href="https://github.com/apache/tomcat/commit/130d36d8492ef9e4eb22952c17c92423cb35fd06">https://github.com/apache/tomcat/commit/130d36d8492ef9e4eb22952c17c92423cb35fd06</a>
+            <a href="https://github.com/apache/tomcat/commit/b5042622b8b78340ae65403c55dcb9c7416924df">https://github.com/apache/tomcat/commit/b5042622b8b78340ae65403c55dcb9c7416924df</a>
+            <a href="https://github.com/apache/tomcat/commit/fec06c610ed7466b401e29cc567a58aee5ed826a">https://github.com/apache/tomcat/commit/fec06c610ed7466b401e29cc567a58aee5ed826a</a>
+            <a href="https://linux.oracle.com/cve/CVE-2025-55752.html">https://linux.oracle.com/cve/CVE-2025-55752.html</a>
+            <a href="https://linux.oracle.com/errata/ELSA-2025-23052.html">https://linux.oracle.com/errata/ELSA-2025-23052.html</a>
+            <a href="https://lists.apache.org/thread/n05kjcwyj1s45ovs8ll1qrrojhfb1tog">https://lists.apache.org/thread/n05kjcwyj1s45ovs8ll1qrrojhfb1tog</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-55752">https://nvd.nist.gov/vuln/detail/CVE-2025-55752</a>
+            <a href="https://tomcat.apache.org/security-10.html#Fixed_in_Apache_Tomcat_10.1.45">https://tomcat.apache.org/security-10.html#Fixed_in_Apache_Tomcat_10.1.45</a>
+            <a href="https://tomcat.apache.org/security-11.html#Fixed_in_Apache_Tomcat_11.0.11">https://tomcat.apache.org/security-11.html#Fixed_in_Apache_Tomcat_11.0.11</a>
+            <a href="https://tomcat.apache.org/security-9.html#Fixed_in_Apache_Tomcat_9.0.109">https://tomcat.apache.org/security-9.html#Fixed_in_Apache_Tomcat_9.0.109</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-55752">https://www.cve.org/CVERecord?id=CVE-2025-55752</a>
+            <a href="https://www.vicarius.io/vsociety/posts/cve-2025-55752-detect-apache-tomcat-vulnerability">https://www.vicarius.io/vsociety/posts/cve-2025-55752-detect-apache-tomcat-vulnerability</a>
+            <a href="https://www.vicarius.io/vsociety/posts/cve-2025-55752-mitigate-apache-tomcat-vulnerability">https://www.vicarius.io/vsociety/posts/cve-2025-55752-mitigate-apache-tomcat-vulnerability</a>
+        </td>
+      </tr>
+      <tr class="severity-MEDIUM">
+        <td class="pkg-name">org.apache.tomcat.embed:tomcat-embed-core</td>
+        <td>CVE-2025-31650</td>
+        <td class="severity">MEDIUM</td>
+        <td>10.1.31</td>
+        <td>9.0.104, 10.1.40, 11.0.6</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            Improper Input Validation vulnerability in Apache Tomcat. Incorrect error handling for some invalid HTTP priority headers resulted in incomplete clean-up of the failed request which created a memory leak. A large number of such requests could trigger an OutOfMemoryException resulting in a denial of service.&#xA;&#xA;This issue affects Apache Tomcat: from 9.0.76 through 9.0.102, from 10.1.10 through 10.1.39, from 11.0.0-M2 through 11.0.5.&#xA;The following versions were EOL at the time the CVE was created but are &#xA;known to be affected: 8.5.90 though 8.5.100.&#xA;&#xA;&#xA;Users are recommended to upgrade to version 9.0.104, 10.1.40 or 11.0.6 which fix the issue.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.openwall.com/lists/oss-security/2025/04/28/2">http://www.openwall.com/lists/oss-security/2025/04/28/2</a>
+            <a href="https://access.redhat.com/errata/RHSA-2025:11332">https://access.redhat.com/errata/RHSA-2025:11332</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2025-31650">https://access.redhat.com/security/cve/CVE-2025-31650</a>
+            <a href="https://bugzilla.redhat.com/2333521">https://bugzilla.redhat.com/2333521</a>
+            <a href="https://bugzilla.redhat.com/2362783">https://bugzilla.redhat.com/2362783</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2333521">https://bugzilla.redhat.com/show_bug.cgi?id=2333521</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2362783">https://bugzilla.redhat.com/show_bug.cgi?id=2362783</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-56337">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-56337</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-31650">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-31650</a>
+            <a href="https://errata.almalinux.org/10/ALSA-2025-11332.html">https://errata.almalinux.org/10/ALSA-2025-11332.html</a>
+            <a href="https://errata.rockylinux.org/RLSA-2025:11335">https://errata.rockylinux.org/RLSA-2025:11335</a>
+            <a href="https://github.com/apache/tomcat">https://github.com/apache/tomcat</a>
+            <a href="https://github.com/apache/tomcat/commit/1eef1dc459c45f1e421d8bd25ef340fc1cc34edc">https://github.com/apache/tomcat/commit/1eef1dc459c45f1e421d8bd25ef340fc1cc34edc</a>
+            <a href="https://github.com/apache/tomcat/commit/40ae788c2e64d018b4e58cd4210bb96434d0100d">https://github.com/apache/tomcat/commit/40ae788c2e64d018b4e58cd4210bb96434d0100d</a>
+            <a href="https://github.com/apache/tomcat/commit/75554da2fc5574862510ae6f0d7b3d78937f1d40">https://github.com/apache/tomcat/commit/75554da2fc5574862510ae6f0d7b3d78937f1d40</a>
+            <a href="https://github.com/apache/tomcat/commit/8cc3b8fb3f2d8d4d6a757e014f19d1fafa948a60">https://github.com/apache/tomcat/commit/8cc3b8fb3f2d8d4d6a757e014f19d1fafa948a60</a>
+            <a href="https://github.com/apache/tomcat/commit/b7674782679e1514a0d154166b1d04d38aaac4a9">https://github.com/apache/tomcat/commit/b7674782679e1514a0d154166b1d04d38aaac4a9</a>
+            <a href="https://github.com/apache/tomcat/commit/b98e74f517b36929f4208506e5adad22cb767baa">https://github.com/apache/tomcat/commit/b98e74f517b36929f4208506e5adad22cb767baa</a>
+            <a href="https://github.com/apache/tomcat/commit/cba1a0fe1289ee7f5dd46c61c38d1e1ac5437bff">https://github.com/apache/tomcat/commit/cba1a0fe1289ee7f5dd46c61c38d1e1ac5437bff</a>
+            <a href="https://github.com/apache/tomcat/commit/ded0285b96b4d3f5560dfc8856ad5ec4a9b50ba9">https://github.com/apache/tomcat/commit/ded0285b96b4d3f5560dfc8856ad5ec4a9b50ba9</a>
+            <a href="https://github.com/apache/tomcat/commit/f619e6a05029538886d5a9d987925d573b5bb8c2">https://github.com/apache/tomcat/commit/f619e6a05029538886d5a9d987925d573b5bb8c2</a>
+            <a href="https://linux.oracle.com/cve/CVE-2025-31650.html">https://linux.oracle.com/cve/CVE-2025-31650.html</a>
+            <a href="https://linux.oracle.com/errata/ELSA-2025-11335.html">https://linux.oracle.com/errata/ELSA-2025-11335.html</a>
+            <a href="https://lists.apache.org/thread/j6zzk0y3yym9pzfzkq5vcyxzz0yzh826">https://lists.apache.org/thread/j6zzk0y3yym9pzfzkq5vcyxzz0yzh826</a>
+            <a href="https://lists.debian.org/debian-lts-announce/2025/07/msg00009.html">https://lists.debian.org/debian-lts-announce/2025/07/msg00009.html</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-31650">https://nvd.nist.gov/vuln/detail/CVE-2025-31650</a>
+            <a href="https://tomcat.apache.org/security-10.html">https://tomcat.apache.org/security-10.html</a>
+            <a href="https://tomcat.apache.org/security-11.html">https://tomcat.apache.org/security-11.html</a>
+            <a href="https://tomcat.apache.org/security-9.html">https://tomcat.apache.org/security-9.html</a>
+            <a href="https://ubuntu.com/security/notices/USN-7705-1">https://ubuntu.com/security/notices/USN-7705-1</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-31650">https://www.cve.org/CVERecord?id=CVE-2025-31650</a>
+        </td>
+      </tr>
+      <tr class="severity-MEDIUM">
+        <td class="pkg-name">org.apache.tomcat.embed:tomcat-embed-core</td>
+        <td>CVE-2025-49124</td>
+        <td class="severity">MEDIUM</td>
+        <td>10.1.31</td>
+        <td>11.0.8, 10.1.42, 9.0.106</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            Untrusted Search Path vulnerability in Apache Tomcat installer for Windows. During installation, the Tomcat installer for Windows used icacls.exe without specifying a full path.&#xA;&#xA;This issue affects Apache Tomcat: from 11.0.0-M1 through 11.0.7, from 10.1.0 through 10.1.41, from 9.0.23 through 9.0.105.&#xA;The following versions were EOL at the time the CVE was created but are &#xA;known to be affected: 8.5.0 through 8.5.100 and 7.0.95 through 7.0.109. Other EOL versions may also be affected.&#xA;&#xA;&#xA;Users are recommended to upgrade to version 11.0.8, 10.1.42 or 9.0.106, which fix the issue.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.openwall.com/lists/oss-security/2025/06/16/3">http://www.openwall.com/lists/oss-security/2025/06/16/3</a>
+            <a href="https://github.com/apache/tomcat">https://github.com/apache/tomcat</a>
+            <a href="https://github.com/apache/tomcat/commit/28726cc2e63bed68771f5eb0f65a78dc7080571823">https://github.com/apache/tomcat/commit/28726cc2e63bed68771f5eb0f65a78dc7080571823</a>
+            <a href="https://github.com/apache/tomcat/commit/c56456cda8151c9504dfb7985700824559d769a7">https://github.com/apache/tomcat/commit/c56456cda8151c9504dfb7985700824559d769a7</a>
+            <a href="https://github.com/apache/tomcat/commit/e0e07812224d327a321babb554f5a5758d30cc49">https://github.com/apache/tomcat/commit/e0e07812224d327a321babb554f5a5758d30cc49</a>
+            <a href="https://lists.apache.org/thread/lnow7tt2j6hb9kcpkggx32ht6o90vqzv">https://lists.apache.org/thread/lnow7tt2j6hb9kcpkggx32ht6o90vqzv</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-49124">https://nvd.nist.gov/vuln/detail/CVE-2025-49124</a>
+            <a href="https://tomcat.apache.org/security-10.html#Fixed_in_Apache_Tomcat_10.1.42">https://tomcat.apache.org/security-10.html#Fixed_in_Apache_Tomcat_10.1.42</a>
+            <a href="https://tomcat.apache.org/security-11.html#Fixed_in_Apache_Tomcat_11.0.8">https://tomcat.apache.org/security-11.html#Fixed_in_Apache_Tomcat_11.0.8</a>
+            <a href="https://tomcat.apache.org/security-9.html#Fixed_in_Apache_Tomcat_9.0.106">https://tomcat.apache.org/security-9.html#Fixed_in_Apache_Tomcat_9.0.106</a>
+        </td>
+      </tr>
+      <tr class="severity-MEDIUM">
+        <td class="pkg-name">org.apache.tomcat.embed:tomcat-embed-core</td>
+        <td>CVE-2025-49125</td>
+        <td class="severity">MEDIUM</td>
+        <td>10.1.31</td>
+        <td>11.0.8, 10.1.42, 9.0.106</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            Authentication Bypass Using an Alternate Path or Channel vulnerability in Apache Tomcat.  When using PreResources or PostResources mounted other than at the root of the web application, it was possible to access those resources via an unexpected path. That path was likely not to be protected by the same security constraints as the expected path, allowing those security constraints to be bypassed.&#xA;&#xA;This issue affects Apache Tomcat: from 11.0.0-M1 through 11.0.7, from 10.1.0-M1 through 10.1.41, from 9.0.0.M1 through 9.0.105.&#xA;The following versions were EOL at the time the CVE was created but are &#xA;known to be affected: 8.5.0 through 8.5.100. Other, older, EOL versions &#xA;may also be affected.&#xA;&#xA;&#xA;Users are recommended to upgrade to version 11.0.8, 10.1.42 or 9.0.106, which fix the issue.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.openwall.com/lists/oss-security/2025/06/16/2">http://www.openwall.com/lists/oss-security/2025/06/16/2</a>
+            <a href="https://access.redhat.com/errata/RHSA-2025:14178">https://access.redhat.com/errata/RHSA-2025:14178</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2025-49125">https://access.redhat.com/security/cve/CVE-2025-49125</a>
+            <a href="https://bugzilla.redhat.com/2373015">https://bugzilla.redhat.com/2373015</a>
+            <a href="https://bugzilla.redhat.com/2373018">https://bugzilla.redhat.com/2373018</a>
+            <a href="https://bugzilla.redhat.com/2373020">https://bugzilla.redhat.com/2373020</a>
+            <a href="https://bugzilla.redhat.com/2373309">https://bugzilla.redhat.com/2373309</a>
+            <a href="https://bugzilla.redhat.com/2379374">https://bugzilla.redhat.com/2379374</a>
+            <a href="https://bugzilla.redhat.com/2379382">https://bugzilla.redhat.com/2379382</a>
+            <a href="https://bugzilla.redhat.com/2379386">https://bugzilla.redhat.com/2379386</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2373015">https://bugzilla.redhat.com/show_bug.cgi?id=2373015</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2373018">https://bugzilla.redhat.com/show_bug.cgi?id=2373018</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2373020">https://bugzilla.redhat.com/show_bug.cgi?id=2373020</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2373309">https://bugzilla.redhat.com/show_bug.cgi?id=2373309</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2379374">https://bugzilla.redhat.com/show_bug.cgi?id=2379374</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2379382">https://bugzilla.redhat.com/show_bug.cgi?id=2379382</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2379386">https://bugzilla.redhat.com/show_bug.cgi?id=2379386</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-48976">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-48976</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-48988">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-48988</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-48989">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-48989</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-49125">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-49125</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-52434">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-52434</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-52520">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-52520</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-53506">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-53506</a>
+            <a href="https://errata.almalinux.org/10/ALSA-2025-14178.html">https://errata.almalinux.org/10/ALSA-2025-14178.html</a>
+            <a href="https://errata.rockylinux.org/RLSA-2025:14181">https://errata.rockylinux.org/RLSA-2025:14181</a>
+            <a href="https://github.com/apache/tomcat">https://github.com/apache/tomcat</a>
+            <a href="https://github.com/apache/tomcat/commit/7617b9c247bc77ed0444dd69adcd8aa48777886c">https://github.com/apache/tomcat/commit/7617b9c247bc77ed0444dd69adcd8aa48777886c</a>
+            <a href="https://github.com/apache/tomcat/commit/7617b9c247bc77ed0444dd69adcd8aa48777886c (10.1.42)">https://github.com/apache/tomcat/commit/7617b9c247bc77ed0444dd69adcd8aa48777886c (10.1.42)</a>
+            <a href="https://github.com/apache/tomcat/commit/9418e3ff9f1f4c006b4661311ae9376c52d162b9">https://github.com/apache/tomcat/commit/9418e3ff9f1f4c006b4661311ae9376c52d162b9</a>
+            <a href="https://github.com/apache/tomcat/commit/9418e3ff9f1f4c006b4661311ae9376c52d162b9 (9.0.106)">https://github.com/apache/tomcat/commit/9418e3ff9f1f4c006b4661311ae9376c52d162b9 (9.0.106)</a>
+            <a href="https://github.com/apache/tomcat/commit/d94bd36fb7eb32e790dae0339bc249069649a637">https://github.com/apache/tomcat/commit/d94bd36fb7eb32e790dae0339bc249069649a637</a>
+            <a href="https://github.com/apache/tomcat/commit/d94bd36fb7eb32e790dae0339bc249069649a637 (11.0.8)">https://github.com/apache/tomcat/commit/d94bd36fb7eb32e790dae0339bc249069649a637 (11.0.8)</a>
+            <a href="https://linux.oracle.com/cve/CVE-2025-49125.html">https://linux.oracle.com/cve/CVE-2025-49125.html</a>
+            <a href="https://linux.oracle.com/errata/ELSA-2025-14181.html">https://linux.oracle.com/errata/ELSA-2025-14181.html</a>
+            <a href="https://lists.apache.org/thread/m66cytbfrty9k7dc4cg6tl1czhsnbywk">https://lists.apache.org/thread/m66cytbfrty9k7dc4cg6tl1czhsnbywk</a>
+            <a href="https://lists.debian.org/debian-lts-announce/2025/07/msg00009.html">https://lists.debian.org/debian-lts-announce/2025/07/msg00009.html</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-49125">https://nvd.nist.gov/vuln/detail/CVE-2025-49125</a>
+            <a href="https://tomcat.apache.org/security-10.html">https://tomcat.apache.org/security-10.html</a>
+            <a href="https://tomcat.apache.org/security-11.html">https://tomcat.apache.org/security-11.html</a>
+            <a href="https://tomcat.apache.org/security-9.html">https://tomcat.apache.org/security-9.html</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-49125">https://www.cve.org/CVERecord?id=CVE-2025-49125</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">org.apache.tomcat.embed:tomcat-embed-core</td>
+        <td>CVE-2025-31651</td>
+        <td class="severity">LOW</td>
+        <td>10.1.31</td>
+        <td>9.0.104, 10.1.40, 11.0.6</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            Improper Neutralization of Escape, Meta, or Control Sequences vulnerability in Apache Tomcat. For a subset of unlikely rewrite rule configurations, it was possible &#xA;for a specially crafted request to bypass some rewrite rules. If those &#xA;rewrite rules effectively enforced security constraints, those &#xA;constraints could be bypassed.&#xA;&#xA;This issue affects Apache Tomcat: from 11.0.0-M1 through 11.0.5, from 10.1.0-M1 through 10.1.39, from 9.0.0.M1 through 9.0.102.&#xA;The following versions were EOL at the time the CVE was created but are &#xA;known to be affected: 8.5.0 though 8.5.100. Other, older, EOL versions &#xA;may also be affected.&#xA;&#xA;&#xA;Users are recommended to upgrade to version [FIXED_VERSION], which fixes the issue.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.openwall.com/lists/oss-security/2025/04/28/3">http://www.openwall.com/lists/oss-security/2025/04/28/3</a>
+            <a href="https://access.redhat.com/errata/RHSA-2025:23052">https://access.redhat.com/errata/RHSA-2025:23052</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2025-31651">https://access.redhat.com/security/cve/CVE-2025-31651</a>
+            <a href="https://bugzilla.redhat.com/2362782">https://bugzilla.redhat.com/2362782</a>
+            <a href="https://bugzilla.redhat.com/2406591">https://bugzilla.redhat.com/2406591</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2362782">https://bugzilla.redhat.com/show_bug.cgi?id=2362782</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2406591">https://bugzilla.redhat.com/show_bug.cgi?id=2406591</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-31651">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-31651</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-55752">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-55752</a>
+            <a href="https://errata.almalinux.org/10/ALSA-2025-23052.html">https://errata.almalinux.org/10/ALSA-2025-23052.html</a>
+            <a href="https://errata.rockylinux.org/RLSA-2025:23049">https://errata.rockylinux.org/RLSA-2025:23049</a>
+            <a href="https://github.com/apache/tomcat">https://github.com/apache/tomcat</a>
+            <a href="https://github.com/apache/tomcat/commit/066bf6b6a15a4e7e0941d4acf096841165b97098">https://github.com/apache/tomcat/commit/066bf6b6a15a4e7e0941d4acf096841165b97098</a>
+            <a href="https://github.com/apache/tomcat/commit/175dc75fc428930034a6c93fb52f830d955d8e64">https://github.com/apache/tomcat/commit/175dc75fc428930034a6c93fb52f830d955d8e64</a>
+            <a href="https://github.com/apache/tomcat/commit/ee3ab548e92345eca0cbd1f01649eb36c6f29454">https://github.com/apache/tomcat/commit/ee3ab548e92345eca0cbd1f01649eb36c6f29454</a>
+            <a href="https://github.com/apache/tomcat/commit/fbecc915a10c5a3d634c5e2c6ced4ff479ce9953">https://github.com/apache/tomcat/commit/fbecc915a10c5a3d634c5e2c6ced4ff479ce9953</a>
+            <a href="https://linux.oracle.com/cve/CVE-2025-31651.html">https://linux.oracle.com/cve/CVE-2025-31651.html</a>
+            <a href="https://linux.oracle.com/errata/ELSA-2025-23052.html">https://linux.oracle.com/errata/ELSA-2025-23052.html</a>
+            <a href="https://lists.apache.org/list.html?announce@tomcat.apache.org">https://lists.apache.org/list.html?announce@tomcat.apache.org</a>
+            <a href="https://lists.debian.org/debian-lts-announce/2025/07/msg00009.html">https://lists.debian.org/debian-lts-announce/2025/07/msg00009.html</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-31651">https://nvd.nist.gov/vuln/detail/CVE-2025-31651</a>
+            <a href="https://tomcat.apache.org/security-10.html">https://tomcat.apache.org/security-10.html</a>
+            <a href="https://tomcat.apache.org/security-11.html">https://tomcat.apache.org/security-11.html</a>
+            <a href="https://tomcat.apache.org/security-9.html">https://tomcat.apache.org/security-9.html</a>
+            <a href="https://ubuntu.com/security/notices/USN-7705-1">https://ubuntu.com/security/notices/USN-7705-1</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-31651">https://www.cve.org/CVERecord?id=CVE-2025-31651</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">org.apache.tomcat.embed:tomcat-embed-core</td>
+        <td>CVE-2025-46701</td>
+        <td class="severity">LOW</td>
+        <td>10.1.31</td>
+        <td>9.0.105, 10.1.41, 11.0.7</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            Improper Handling of Case Sensitivity vulnerability in Apache Tomcat&#39;s GCI servlet allows security constraint bypass of security constraints that apply to the pathInfo component of a URI mapped to the CGI servlet.&#xA;&#xA;This issue affects Apache Tomcat: from 11.0.0-M1 through 11.0.6, from 10.1.0-M1 through 10.1.40, from 9.0.0.M1 through 9.0.104.&#xA;The following versions were EOL at the time the CVE was created but are &#xA;known to be affected: 8.5.0 though 8.5.100. Other, older, EOL versions &#xA;may also be affected.&#xA;&#xA;&#xA;Users are recommended to upgrade to version 11.0.7, 10.1.41 or 9.0.105, which fixes the issue.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.openwall.com/lists/oss-security/2025/05/29/4">http://www.openwall.com/lists/oss-security/2025/05/29/4</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2025-46701">https://access.redhat.com/security/cve/CVE-2025-46701</a>
+            <a href="https://github.com/apache/tomcat">https://github.com/apache/tomcat</a>
+            <a href="https://github.com/apache/tomcat/commit/0f01966eb60015d975525019e12a087f05ebf01a">https://github.com/apache/tomcat/commit/0f01966eb60015d975525019e12a087f05ebf01a</a>
+            <a href="https://github.com/apache/tomcat/commit/0f01966eb60015d975525019e12a087f05ebf01a (11.0.7)">https://github.com/apache/tomcat/commit/0f01966eb60015d975525019e12a087f05ebf01a (11.0.7)</a>
+            <a href="https://github.com/apache/tomcat/commit/238d2aa54b99f91d1111467e2237d2244c64e558">https://github.com/apache/tomcat/commit/238d2aa54b99f91d1111467e2237d2244c64e558</a>
+            <a href="https://github.com/apache/tomcat/commit/238d2aa54b99f91d1111467e2237d2244c64e558 (10.1.41)">https://github.com/apache/tomcat/commit/238d2aa54b99f91d1111467e2237d2244c64e558 (10.1.41)</a>
+            <a href="https://github.com/apache/tomcat/commit/2c6800111e7d8d8d5403c07978ea9bff3db5a5a5">https://github.com/apache/tomcat/commit/2c6800111e7d8d8d5403c07978ea9bff3db5a5a5</a>
+            <a href="https://github.com/apache/tomcat/commit/2c6800111e7d8d8d5403c07978ea9bff3db5a5a5 (10.1.41)">https://github.com/apache/tomcat/commit/2c6800111e7d8d8d5403c07978ea9bff3db5a5a5 (10.1.41)</a>
+            <a href="https://github.com/apache/tomcat/commit/8cb95ff03221067c511b3fa66d4f745bc4b0a605">https://github.com/apache/tomcat/commit/8cb95ff03221067c511b3fa66d4f745bc4b0a605</a>
+            <a href="https://github.com/apache/tomcat/commit/8cb95ff03221067c511b3fa66d4f745bc4b0a605 (9.0.105)">https://github.com/apache/tomcat/commit/8cb95ff03221067c511b3fa66d4f745bc4b0a605 (9.0.105)</a>
+            <a href="https://github.com/apache/tomcat/commit/8df00018a252baa9497615d6420fb6c10466fa74">https://github.com/apache/tomcat/commit/8df00018a252baa9497615d6420fb6c10466fa74</a>
+            <a href="https://github.com/apache/tomcat/commit/8df00018a252baa9497615d6420fb6c10466fa74 (9.0.105)">https://github.com/apache/tomcat/commit/8df00018a252baa9497615d6420fb6c10466fa74 (9.0.105)</a>
+            <a href="https://github.com/apache/tomcat/commit/fab7247d2f0e3a29d5daef565f829f383e10e5e2">https://github.com/apache/tomcat/commit/fab7247d2f0e3a29d5daef565f829f383e10e5e2</a>
+            <a href="https://github.com/apache/tomcat/commit/fab7247d2f0e3a29d5daef565f829f383e10e5e2 (11.0.7)">https://github.com/apache/tomcat/commit/fab7247d2f0e3a29d5daef565f829f383e10e5e2 (11.0.7)</a>
+            <a href="https://lists.apache.org/thread/xhqqk9w5q45srcdqhogdk04lhdscv30j">https://lists.apache.org/thread/xhqqk9w5q45srcdqhogdk04lhdscv30j</a>
+            <a href="https://lists.debian.org/debian-lts-announce/2025/07/msg00009.html">https://lists.debian.org/debian-lts-announce/2025/07/msg00009.html</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-46701">https://nvd.nist.gov/vuln/detail/CVE-2025-46701</a>
+            <a href="https://tomcat.apache.org/security-10.html#Fixed_in_Apache_Tomcat_10.1.41">https://tomcat.apache.org/security-10.html#Fixed_in_Apache_Tomcat_10.1.41</a>
+            <a href="https://tomcat.apache.org/security-11.html#Fixed_in_Apache_Tomcat_11.0.7">https://tomcat.apache.org/security-11.html#Fixed_in_Apache_Tomcat_11.0.7</a>
+            <a href="https://tomcat.apache.org/security-9.html#Fixed_in_Apache_Tomcat_9.0.105">https://tomcat.apache.org/security-9.html#Fixed_in_Apache_Tomcat_9.0.105</a>
+            <a href="https://ubuntu.com/security/notices/USN-7705-1">https://ubuntu.com/security/notices/USN-7705-1</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-46701">https://www.cve.org/CVERecord?id=CVE-2025-46701</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">org.apache.tomcat.embed:tomcat-embed-core</td>
+        <td>CVE-2025-55754</td>
+        <td class="severity">LOW</td>
+        <td>10.1.31</td>
+        <td>11.0.11, 10.1.45, 9.0.109</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            Improper Neutralization of Escape, Meta, or Control Sequences vulnerability in Apache Tomcat.&#xA;&#xA;Tomcat did not escape ANSI escape sequences in log messages. If Tomcat was running in a console on a Windows operating system, and the console supported ANSI escape sequences, it was possible for an attacker to use a specially crafted URL to inject ANSI escape sequences to manipulate the console and the clipboard and attempt to trick an administrator into running an attacker controlled command. While no attack vector was found, it may have been possible to mount this attack on other operating systems.&#xA;&#xA;&#xA;&#xA;This issue affects Apache Tomcat: from 11.0.0-M1 through 11.0.10, from 10.1.0-M1 through 10.1.44, from 9.0.40 through 9.0.108.&#xA;&#xA;The following versions were EOL at the time the CVE was created but are &#xA;known to be affected: 8.5.60 though 8.5.100. Other, older, EOL versions may also be affected.&#xA;Users are recommended to upgrade to version 11.0.11 or later, 10.1.45 or later or 9.0.109 or later, which fix the issue.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.openwall.com/lists/oss-security/2025/10/27/5">http://www.openwall.com/lists/oss-security/2025/10/27/5</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2025-55754">https://access.redhat.com/security/cve/CVE-2025-55754</a>
+            <a href="https://github.com/apache/tomcat">https://github.com/apache/tomcat</a>
+            <a href="https://github.com/apache/tomcat/commit/138d7f5cfaae683078948303333c080e6faa75d2">https://github.com/apache/tomcat/commit/138d7f5cfaae683078948303333c080e6faa75d2</a>
+            <a href="https://github.com/apache/tomcat/commit/5a3db092982c0c58d4855304167ee757fe5e79bb">https://github.com/apache/tomcat/commit/5a3db092982c0c58d4855304167ee757fe5e79bb</a>
+            <a href="https://github.com/apache/tomcat/commit/a03cabf3a36a42d27d8d997ed31f034f50ba6cd5">https://github.com/apache/tomcat/commit/a03cabf3a36a42d27d8d997ed31f034f50ba6cd5</a>
+            <a href="https://lists.apache.org/thread/j7w54hqbkfcn0xb9xy0wnx8w5nymcbqd">https://lists.apache.org/thread/j7w54hqbkfcn0xb9xy0wnx8w5nymcbqd</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-55754">https://nvd.nist.gov/vuln/detail/CVE-2025-55754</a>
+            <a href="https://tomcat.apache.org/security-10.html#Fixed_in_Apache_Tomcat_10.1.45">https://tomcat.apache.org/security-10.html#Fixed_in_Apache_Tomcat_10.1.45</a>
+            <a href="https://tomcat.apache.org/security-11.html#Fixed_in_Apache_Tomcat_11.0.11">https://tomcat.apache.org/security-11.html#Fixed_in_Apache_Tomcat_11.0.11</a>
+            <a href="https://tomcat.apache.org/security-9.html#Fixed_in_Apache_Tomcat_9.0.109">https://tomcat.apache.org/security-9.html#Fixed_in_Apache_Tomcat_9.0.109</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-55754">https://www.cve.org/CVERecord?id=CVE-2025-55754</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">org.apache.tomcat.embed:tomcat-embed-core</td>
+        <td>CVE-2025-61795</td>
+        <td class="severity">LOW</td>
+        <td>10.1.31</td>
+        <td>11.0.12, 10.1.47, 9.0.110</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            Improper Resource Shutdown or Release vulnerability in Apache Tomcat.&#xA;&#xA;If an error occurred (including exceeding limits) during the processing of a multipart upload, temporary copies of the uploaded parts written to disc were not cleaned up immediately but left for the garbage collection process to delete. Depending on JVM settings, application memory usage and application load, it was possible that space for the temporary copies of uploaded parts would be filled faster than GC cleared it, leading to a DoS.&#xA;&#xA;&#xA;&#xA;This issue affects Apache Tomcat: from 11.0.0-M1 through 11.0.11, from 10.1.0-M1 through 10.1.46, from 9.0.0.M1 through 9.0.109.&#xA;&#xA;The following versions were EOL at the time the CVE was created but are &#xA;known to be affected: 8.5.0 though 8.5.100. Other, older, EOL versions may also be affected.&#xA;Users are recommended to upgrade to version 11.0.12 or later, 10.1.47 or later or 9.0.110 or later which fixes the issue.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://www.openwall.com/lists/oss-security/2025/10/27/6">http://www.openwall.com/lists/oss-security/2025/10/27/6</a>
+            <a href="https://access.redhat.com/errata/RHSA-2025:23050">https://access.redhat.com/errata/RHSA-2025:23050</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2025-61795">https://access.redhat.com/security/cve/CVE-2025-61795</a>
+            <a href="https://bugzilla.redhat.com/2362782">https://bugzilla.redhat.com/2362782</a>
+            <a href="https://bugzilla.redhat.com/2406588">https://bugzilla.redhat.com/2406588</a>
+            <a href="https://bugzilla.redhat.com/2406591">https://bugzilla.redhat.com/2406591</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2362782">https://bugzilla.redhat.com/show_bug.cgi?id=2362782</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2406588">https://bugzilla.redhat.com/show_bug.cgi?id=2406588</a>
+            <a href="https://bugzilla.redhat.com/show_bug.cgi?id=2406591">https://bugzilla.redhat.com/show_bug.cgi?id=2406591</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-31651">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-31651</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-55752">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-55752</a>
+            <a href="https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-61795">https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-61795</a>
+            <a href="https://errata.almalinux.org/10/ALSA-2025-23050.html">https://errata.almalinux.org/10/ALSA-2025-23050.html</a>
+            <a href="https://errata.rockylinux.org/RLSA-2025:23050">https://errata.rockylinux.org/RLSA-2025:23050</a>
+            <a href="https://github.com/apache/tomcat">https://github.com/apache/tomcat</a>
+            <a href="https://github.com/apache/tomcat/commit/1cdf5f730ede75a0759492f179ac21ca4ff68e06">https://github.com/apache/tomcat/commit/1cdf5f730ede75a0759492f179ac21ca4ff68e06</a>
+            <a href="https://github.com/apache/tomcat/commit/af6e9181620304c0d818121c29c074e1330610d0">https://github.com/apache/tomcat/commit/af6e9181620304c0d818121c29c074e1330610d0</a>
+            <a href="https://github.com/apache/tomcat/commit/afa422bd7ca1eef0f507259c682fd876494d9c3b">https://github.com/apache/tomcat/commit/afa422bd7ca1eef0f507259c682fd876494d9c3b</a>
+            <a href="https://linux.oracle.com/cve/CVE-2025-61795.html">https://linux.oracle.com/cve/CVE-2025-61795.html</a>
+            <a href="https://linux.oracle.com/errata/ELSA-2025-23050.html">https://linux.oracle.com/errata/ELSA-2025-23050.html</a>
+            <a href="https://lists.apache.org/thread/wm9mx8brmx9g4zpywm06ryrtvd3160pp">https://lists.apache.org/thread/wm9mx8brmx9g4zpywm06ryrtvd3160pp</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-61795">https://nvd.nist.gov/vuln/detail/CVE-2025-61795</a>
+            <a href="https://tomcat.apache.org/security-10.html#Fixed_in_Apache_Tomcat_10.1.47">https://tomcat.apache.org/security-10.html#Fixed_in_Apache_Tomcat_10.1.47</a>
+            <a href="https://tomcat.apache.org/security-11.html#Fixed_in_Apache_Tomcat_11.0.12">https://tomcat.apache.org/security-11.html#Fixed_in_Apache_Tomcat_11.0.12</a>
+            <a href="https://tomcat.apache.org/security-9.html#Fixed_in_Apache_Tomcat_9.0.110">https://tomcat.apache.org/security-9.html#Fixed_in_Apache_Tomcat_9.0.110</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-61795">https://www.cve.org/CVERecord?id=CVE-2025-61795</a>
+        </td>
+      </tr>
+      <tr class="severity-HIGH">
+        <td class="pkg-name">org.postgresql:postgresql</td>
+        <td>CVE-2025-49146</td>
+        <td class="severity">HIGH</td>
+        <td>42.7.4</td>
+        <td>42.7.7</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            pgjdbc is an open source postgresql JDBC Driver. From 42.7.4 and until 42.7.7, when the PostgreSQL JDBC driver is configured with channel binding set to required (default value is prefer), the driver would incorrectly allow connections to proceed with authentication methods that do not support channel binding (such as password, MD5, GSS, or SSPI authentication). This could allow a man-in-the-middle attacker to intercept connections that users believed were protected by channel binding requirements. This vulnerability is fixed in 42.7.7.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2025-49146">https://access.redhat.com/security/cve/CVE-2025-49146</a>
+            <a href="https://datatracker.ietf.org/doc/html/rfc5802">https://datatracker.ietf.org/doc/html/rfc5802</a>
+            <a href="https://datatracker.ietf.org/doc/html/rfc7677">https://datatracker.ietf.org/doc/html/rfc7677</a>
+            <a href="https://github.com/pgjdbc/pgjdbc">https://github.com/pgjdbc/pgjdbc</a>
+            <a href="https://github.com/pgjdbc/pgjdbc/commit/9217ed16cb2918ab1b6b9258ae97e6ede244d8a0">https://github.com/pgjdbc/pgjdbc/commit/9217ed16cb2918ab1b6b9258ae97e6ede244d8a0</a>
+            <a href="https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-hq9p-pm7w-8p54">https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-hq9p-pm7w-8p54</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-49146">https://nvd.nist.gov/vuln/detail/CVE-2025-49146</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-49146">https://www.cve.org/CVERecord?id=CVE-2025-49146</a>
+            <a href="https://www.postgresql.org/docs/current/sasl-authentication.html#SASL-SCRAM-SHA-256">https://www.postgresql.org/docs/current/sasl-authentication.html#SASL-SCRAM-SHA-256</a>
+        </td>
+      </tr>
+      <tr class="severity-HIGH">
+        <td class="pkg-name">org.springframework.boot:spring-boot</td>
+        <td>CVE-2025-22235</td>
+        <td class="severity">HIGH</td>
+        <td>3.3.5</td>
+        <td>3.3.11, 3.4.5</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            EndpointRequest.to() creates a matcher for null/** if the actuator endpoint, for which the EndpointRequest has been created, is disabled or not exposed.&#xA;&#xA;Your application may be affected by this if all the following conditions are met:&#xA;&#xA;  *  You use Spring Security&#xA;  *  EndpointRequest.to() has been used in a Spring Security chain configuration&#xA;  *  The endpoint which EndpointRequest references is disabled or not exposed via web&#xA;  *  Your application handles requests to /null and this path needs protection&#xA;&#xA;&#xA;You are not affected if any of the following is true:&#xA;&#xA;  *  You don&#39;t use Spring Security&#xA;  *  You don&#39;t use EndpointRequest.to()&#xA;  *  The endpoint which EndpointRequest.to() refers to is enabled and is exposed&#xA;  *  Your application does not handle requests to /null or this path does not need protection
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2025-22235">https://access.redhat.com/security/cve/CVE-2025-22235</a>
+            <a href="https://github.com/advisories/GHSA-rc42-6c7j-7h5r">https://github.com/advisories/GHSA-rc42-6c7j-7h5r</a>
+            <a href="https://github.com/spring-projects/spring-boot">https://github.com/spring-projects/spring-boot</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-22235">https://nvd.nist.gov/vuln/detail/CVE-2025-22235</a>
+            <a href="https://security.netapp.com/advisory/ntap-20250516-0010">https://security.netapp.com/advisory/ntap-20250516-0010</a>
+            <a href="https://security.netapp.com/advisory/ntap-20250516-0010/">https://security.netapp.com/advisory/ntap-20250516-0010/</a>
+            <a href="https://spring.io/security/cve-2025-22235">https://spring.io/security/cve-2025-22235</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-22235">https://www.cve.org/CVERecord?id=CVE-2025-22235</a>
+        </td>
+      </tr>
+      <tr class="severity-LOW">
+        <td class="pkg-name">org.springframework:spring-context</td>
+        <td>CVE-2025-22233</td>
+        <td class="severity">LOW</td>
+        <td>6.1.14</td>
+        <td>6.2.7, 6.1.20</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            CVE-2024-38820 ensured Locale-independent, lowercase conversion for both the configured disallowedFields patterns and for request parameter names. However, there are still cases where it is possible to bypass the disallowedFields checks.&#xA;&#xA;Affected Spring Products and Versions&#xA;&#xA;Spring Framework:&#xA;  *  6.2.0 - 6.2.6&#xA;&#xA;  *  6.1.0 - 6.1.19&#xA;&#xA;  *  6.0.0 - 6.0.27&#xA;&#xA;  *  5.3.0 - 5.3.42&#xA;  *  Older, unsupported versions are also affected&#xA;&#xA;&#xA;&#xA;Mitigation&#xA;&#xA;Users of affected versions should upgrade to the corresponding fixed version.&#xA;&#xA;Affected version(s)Fix Version Availability 6.2.x&#xA; 6.2.7&#xA;OSS6.1.x&#xA; 6.1.20&#xA;OSS6.0.x&#xA; 6.0.28&#xA; Commercial https://enterprise.spring.io/ 5.3.x&#xA; 5.3.43&#xA; Commercial https://enterprise.spring.io/ &#xA;No further mitigation steps are necessary.&#xA;&#xA;&#xA;Generally, we recommend using a dedicated model object with properties only for data binding, or using constructor binding since constructor arguments explicitly declare what to bind together with turning off setter binding through the declarativeBinding flag. See the Model Design section in the reference documentation.&#xA;&#xA;For setting binding, prefer the use of allowedFields (an explicit list) over disallowedFields.&#xA;&#xA;Credit&#xA;&#xA;This issue was responsibly reported by the TERASOLUNA Framework Development Team from NTT DATA Group Corporation.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://github.com/spring-projects/spring-framework">https://github.com/spring-projects/spring-framework</a>
+            <a href="https://github.com/spring-projects/spring-framework/commit/edfcc6ffb188e4614ec9b212e3208b666981851c">https://github.com/spring-projects/spring-framework/commit/edfcc6ffb188e4614ec9b212e3208b666981851c</a>
+            <a href="https://github.com/spring-projects/spring-framework/commit/ee62701f5634e904e42e218baad142cea2bcd332">https://github.com/spring-projects/spring-framework/commit/ee62701f5634e904e42e218baad142cea2bcd332</a>
+            <a href="https://github.com/spring-projects/spring-framework/issues/34801">https://github.com/spring-projects/spring-framework/issues/34801</a>
+            <a href="https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:H/PR:L/UI:N/S:U/C:N/I:L/A:N&amp;version=3.1">https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:H/PR:L/UI:N/S:U/C:N/I:L/A:N&amp;version=3.1</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-22233">https://nvd.nist.gov/vuln/detail/CVE-2025-22233</a>
+            <a href="https://spring.io/security/cve-2025-22233">https://spring.io/security/cve-2025-22233</a>
+        </td>
+      </tr>
+      <tr class="severity-HIGH">
+        <td class="pkg-name">org.springframework:spring-core</td>
+        <td>CVE-2025-41249</td>
+        <td class="severity">HIGH</td>
+        <td>6.1.14</td>
+        <td>6.2.11</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            The Spring Framework annotation detection mechanism may not correctly resolve annotations on methods within type hierarchies with a parameterized super type with unbounded generics. This can be an issue if such annotations are used for authorization decisions.&#xA;&#xA;Your application may be affected by this if you are using Spring Security&#39;s @EnableMethodSecurity feature.&#xA;&#xA;You are not affected by this if you are not using @EnableMethodSecurity or if you do not use security annotations on methods in generic superclasses or generic interfaces.&#xA;&#xA;This CVE is published in conjunction with  CVE-2025-41248 https://spring.io/security/cve-2025-41248 .
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2025-41249">https://access.redhat.com/security/cve/CVE-2025-41249</a>
+            <a href="https://github.com/spring-projects/spring-framework">https://github.com/spring-projects/spring-framework</a>
+            <a href="https://github.com/spring-projects/spring-framework/commit/6d710d482a6785b069e35022e81758953afc21ff">https://github.com/spring-projects/spring-framework/commit/6d710d482a6785b069e35022e81758953afc21ff</a>
+            <a href="https://github.com/spring-projects/spring-framework/issues/35342">https://github.com/spring-projects/spring-framework/issues/35342</a>
+            <a href="https://github.com/spring-projects/spring-framework/releases/tag/v6.2.11">https://github.com/spring-projects/spring-framework/releases/tag/v6.2.11</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-41249">https://nvd.nist.gov/vuln/detail/CVE-2025-41249</a>
+            <a href="https://spring.io/security/cve-2025-41249">https://spring.io/security/cve-2025-41249</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-41249">https://www.cve.org/CVERecord?id=CVE-2025-41249</a>
+        </td>
+      </tr>
+      <tr class="severity-MEDIUM">
+        <td class="pkg-name">org.springframework:spring-web</td>
+        <td>CVE-2025-41234</td>
+        <td class="severity">MEDIUM</td>
+        <td>6.1.14</td>
+        <td>6.2.8, 6.1.21</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            Description&#xA;&#xA;In Spring Framework, versions 6.0.x as of 6.0.5, versions 6.1.x and 6.2.x, an application is vulnerable to a reflected file download (RFD) attack when it sets a “Content-Disposition” header with a non-ASCII charset, where the filename attribute is derived from user-supplied input.&#xA;&#xA;Specifically, an application is vulnerable when all the following are true:&#xA;&#xA;  *  The header is prepared with org.springframework.http.ContentDisposition.&#xA;  *  The filename is set via ContentDisposition.Builder#filename(String, Charset).&#xA;  *  The value for the filename is derived from user-supplied input.&#xA;  *  The application does not sanitize the user-supplied input.&#xA;  *  The downloaded content of the response is injected with malicious commands by the attacker (see RFD paper reference for details).&#xA;&#xA;&#xA;An application is not vulnerable if any of the following is true:&#xA;&#xA;  *  The application does not set a “Content-Disposition” response header.&#xA;  *  The header is not prepared with org.springframework.http.ContentDisposition.&#xA;  *  The filename is set via one of:  *  ContentDisposition.Builder#filename(String), or&#xA;  *  ContentDisposition.Builder#filename(String, ASCII)&#xA;&#xA;&#xA;&#xA;  *  The filename is not derived from user-supplied input.&#xA;  *  The filename is derived from user-supplied input but sanitized by the application.&#xA;  *  The attacker cannot inject malicious content in the downloaded content of the response.&#xA;&#xA;&#xA;Affected Spring Products and VersionsSpring Framework:&#xA;&#xA;  *  6.2.0 - 6.2.7&#xA;  *  6.1.0 - 6.1.20&#xA;  *  6.0.5 - 6.0.28&#xA;  *  Older, unsupported versions are not affected&#xA;&#xA;&#xA;MitigationUsers of affected versions should upgrade to the corresponding fixed version.&#xA;&#xA;Affected version(s)Fix versionAvailability6.2.x6.2.8OSS6.1.x6.1.21OSS6.0.x6.0.29 Commercial https://enterprise.spring.io/ No further mitigation steps are necessary.&#xA;&#xA;&#xA;CWE-113 in `Content-Disposition` handling in VMware Spring Framework versions 6.0.5 to 6.2.7 allows remote attackers to launch Reflected File Download (RFD) attacks via unsanitized user input in `ContentDisposition.Builder#filename(String, Charset)` with non-ASCII charsets.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="https://access.redhat.com/security/cve/CVE-2025-41234">https://access.redhat.com/security/cve/CVE-2025-41234</a>
+            <a href="https://github.com/spring-projects/spring-framework">https://github.com/spring-projects/spring-framework</a>
+            <a href="https://github.com/spring-projects/spring-framework/commit/f0e7b42704e6b33958f242d91bd690d6ef7ada9c">https://github.com/spring-projects/spring-framework/commit/f0e7b42704e6b33958f242d91bd690d6ef7ada9c</a>
+            <a href="https://github.com/spring-projects/spring-framework/commit/fd68ea6fcbf94fc1d38bfefd3692fe094652ab3d">https://github.com/spring-projects/spring-framework/commit/fd68ea6fcbf94fc1d38bfefd3692fe094652ab3d</a>
+            <a href="https://github.com/spring-projects/spring-framework/issues/35034">https://github.com/spring-projects/spring-framework/issues/35034</a>
+            <a href="https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:H/PR:L/UI:R/S:C/C:H/I:L/A:N&amp;version=3.1">https://nvd.nist.gov/vuln-metrics/cvss/v3-calculator?vector=AV:N/AC:H/PR:L/UI:R/S:C/C:H/I:L/A:N&amp;version=3.1</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-41234">https://nvd.nist.gov/vuln/detail/CVE-2025-41234</a>
+            <a href="https://spring.io/security/cve-2025-41234">https://spring.io/security/cve-2025-41234</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-41234">https://www.cve.org/CVERecord?id=CVE-2025-41234</a>
+        </td>
+      </tr>
+      <tr class="severity-MEDIUM">
+        <td class="pkg-name">org.springframework:spring-webmvc</td>
+        <td>CVE-2025-41242</td>
+        <td class="severity">MEDIUM</td>
+        <td>6.1.14</td>
+        <td>6.2.10</td>
+        <td style="white-space:normal;">
+          <div class="description-cell">
+            Spring Framework MVC applications can be vulnerable to a “Path Traversal Vulnerability” when deployed on a non-compliant Servlet container.&#xA;&#xA;An application can be vulnerable when all the following are true:&#xA;&#xA;  *  the application is deployed as a WAR or with an embedded Servlet container&#xA;  *  the Servlet container  does not reject suspicious sequences https://jakarta.ee/specifications/servlet/6.1/jakarta-servlet-spec-6.1.html#uri-path-canonicalization &#xA;  *  the application  serves static resources https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-config/static-resources.html#page-title  with Spring resource handling&#xA;&#xA;&#xA;We have verified that applications deployed on Apache Tomcat or Eclipse Jetty are not vulnerable, as long as default security features are not disabled in the configuration. Because we cannot check exploits against all Servlet containers and configuration variants, we strongly recommend upgrading your application.
+          </div>
+          <span class="show-more">Show more</span>
+        </td>
+        <td class="links" data-more-links="off">
+            <a href="http://spring.io/security/cve-2025-41242">http://spring.io/security/cve-2025-41242</a>
+            <a href="https://access.redhat.com/security/cve/CVE-2025-41242">https://access.redhat.com/security/cve/CVE-2025-41242</a>
+            <a href="https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-config/static-resources.html#page-title">https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-config/static-resources.html#page-title</a>
+            <a href="https://github.com/spring-projects/spring-framework">https://github.com/spring-projects/spring-framework</a>
+            <a href="https://jakarta.ee/specifications/servlet/6.1/jakarta-servlet-spec-6.1.html#uri-path-canonicalization">https://jakarta.ee/specifications/servlet/6.1/jakarta-servlet-spec-6.1.html#uri-path-canonicalization</a>
+            <a href="https://nvd.nist.gov/vuln/detail/CVE-2025-41242">https://nvd.nist.gov/vuln/detail/CVE-2025-41242</a>
+            <a href="https://www.cve.org/CVERecord?id=CVE-2025-41242">https://www.cve.org/CVERecord?id=CVE-2025-41242</a>
+        </td>
+      </tr>
+      <tr><th colspan="7">No Misconfigurations found</th></tr>
+    </tbody>
+  </table>
+</body>
+</html>
+
