@@ -4,7 +4,6 @@
 
 ### *Modern Cloud-Native DevOps Pipeline with GitOps & Progressive Delivery*
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=flat&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
 [![Jenkins](https://img.shields.io/badge/jenkins-%232C5263.svg?style=flat&logo=jenkins&logoColor=white)](https://www.jenkins.io/)
@@ -166,7 +165,7 @@ kubectl create namespace argo-rollouts
 kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
 
 #Install Postgresql
-helm install my-release oci://registry-1.docker.io/bitnamicharts/postgresql
+helm install postgresql oci://registry-1.docker.io/bitnamicharts/postgresql -n postgresql
 
 #Install Ingress Nginx
 helm upgrade --install ingress-nginx ingress-nginx \
@@ -199,7 +198,6 @@ kubectl port-forward svc/argocd-server 8080:80 -n argocd
 # Watch deployment
 kubectl get pods -n default -w
 ```
-
 
 ---
 
@@ -236,7 +234,6 @@ kubectl get pods -n default -w
 | **9. Clean WS After build** | ArgoCD | ~2s | Clean WS After build |
 
 
-
 ---
 
 ## 🔐 Security & Quality
@@ -264,7 +261,7 @@ kubectl get pods -n default -w
 <tr>
 <td width="50%">
 
-#### 📈 **Quality Metrics**
+#### 📈 **Quality Gates**
 | Metric | Threshold |
 |--------|-----------|
 | Code Coverage | < 80% |
