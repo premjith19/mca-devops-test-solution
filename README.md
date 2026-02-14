@@ -212,48 +212,6 @@ kubectl apply -f argocd/application.yaml
 kubectl get applications -n argocd -w
 ```
 
----
-
-## 📁 Project Structure
-
-```
-📦 mca-devops-test
-┣ 📂 docker/
-┃ ┣ 📜 Dockerfile                 # Multi-stage Docker build
-┃ ┗ 📜 .dockerignore             # Docker ignore patterns
-┣ 📂 k8s/
-┃ ┣ 📂 base/                     # Base Kubernetes manifests
-┃ ┃ ┣ 📜 deployment.yaml
-┃ ┃ ┣ 📜 service.yaml
-┃ ┃ ┗ 📜 configmap.yaml
-┃ ┗ 📂 overlays/                 # Environment-specific overlays
-┃   ┣ 📂 dev/
-┃   ┣ 📂 staging/
-┃   ┗ 📂 prod/
-┣ 📂 helm/
-┃ ┗ 📂 app-chart/                # Helm chart for application
-┃   ┣ 📜 Chart.yaml
-┃   ┣ 📜 values.yaml
-┃   ┗ 📂 templates/
-┣ 📂 jenkins/
-┃ ┣ 📜 Jenkinsfile               # Declarative pipeline
-┃ ┗ 📂 pipelines/                # Additional pipeline scripts
-┣ 📂 argocd/
-┃ ┣ 📜 application.yaml          # ArgoCD application definition
-┃ ┣ 📜 project.yaml              # ArgoCD project
-┃ ┗ 📜 repo-secret.yaml          # Repository credentials
-┣ 📂 rollouts/
-┃ ┣ 📜 canary-rollout.yaml       # Canary strategy
-┃ ┣ 📜 bluegreen-rollout.yaml    # Blue-green strategy
-┃ ┗ 📜 analysis-template.yaml    # Automated analysis
-┣ 📂 trivy/
-┃ ┣ 📜 trivy-config.yaml         # Trivy configuration
-┃ ┗ 📜 scan-policy.yaml          # Security policies
-┣ 📂 sonarqube/
-┃ ┣ 📜 sonar-project.properties  # SonarQube properties
-┃ ┗ 📜 quality-gate.json         # Quality gate rules
-┗ 📜 README.md                    # This file!
-```
 
 ---
 
@@ -272,9 +230,8 @@ graph TB
     DockerBuild --> TrivyScan{🔍 Trivy Scan}
     TrivyScan -->|✅ No Critical| Push[📤 Push to Registry]
     TrivyScan -->|❌ Vulnerabilities| Fail
-    Push --> UpdateManifest[📝 Update K8s Manifests]
-    UpdateManifest --> ArgoCDSync[🎯 Trigger ArgoCD]
-    ArgoCDSync --> Success([✅ Deployment Initiated])
+    Push --> Docker Image Push[📝 Docker Hub / ECR]
+    ArgoCD Deploy  --> Success([✅ Deployment Initiated])
 ```
 
 ### 📊 Pipeline Stages Breakdown
@@ -282,85 +239,17 @@ graph TB
 | Stage | Tool | Duration | Description |
 |-------|------|----------|-------------|
 | **1. Checkout** | Git | ~5s | Clone source code from repository |
-| **2. Build** | Maven/Gradle | ~2m | Compile application and run tests |
+| **2. Build** | Maven | ~2m | Compile application and run tests |
 | **3. SonarQube** | SonarQube | ~1m | Static code analysis & quality gates |
-| **4. Docker Build** | Docker | ~3m | Create optimized container image |
-| **5. Trivy Scan** | Trivy | ~30s | Scan for vulnerabilities & secrets |
-| **6. Push Image** | Docker | ~1m | Push to container registry |
-| **7. Update Manifests** | Git | ~10s | Update image tags in K8s manifests |
-| **8. ArgoCD Sync** | ArgoCD | ~2m | Deploy to Kubernetes cluster |
+| **4. Trivy FS Scan** | Trivy | ~30s | Scans the project source code and dependencies |
+| **5. Docker Build** | Docker | ~3m | Create optimized container image |
+| **6. Trivy Image Scan** | Trivy | ~30s | Scan Docker image for vulnerabilities & secrets |
+| **6. Trivy Secret Scan** | Trivy | ~30s | Scans the source code for hardcoded secrets such as passwords, API keys, and tokens. |
+| **7. Push Image** | Docker | ~1m | Push to container registry |
+| **9. Deployment via ArgoCD** | ArgoCD | ~2m | Deploy to Kubernetes cluster |
+| **9. Clean WS After build** | ArgoCD | ~2s | Clean WS After build |
 
-### 🎯 Pipeline Configuration
 
-<details>
-<summary><b>View Jenkinsfile Example</b></summary>
-
-```groovy
-pipeline {
-    agent {
-        kubernetes {
-            yaml '''
-                apiVersion: v1
-                kind: Pod
-                spec:
-                  containers:
-                  - name: docker
-                    image: docker:latest
-                  - name: trivy
-                    image: aquasec/trivy:latest
-            '''
-        }
-    }
-    
-    stages {
-        stage('Checkout') {
-            steps {
-                git branch: 'main', url: 'https://github.com/your-repo'
-            }
-        }
-        
-        stage('Build & Test') {
-            steps {
-                sh './gradlew clean build test'
-            }
-        }
-        
-        stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('SonarQube') {
-                    sh './gradlew sonarqube'
-                }
-            }
-        }
-        
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
-        
-        stage('Docker Build') {
-            steps {
-                container('docker') {
-                    sh 'docker build -t myapp:${BUILD_NUMBER} .'
-                }
-            }
-        }
-        
-        stage('Trivy Scan') {
-            steps {
-                container('trivy') {
-                    sh 'trivy image --severity HIGH,CRITICAL myapp:${BUILD_NUMBER}'
-                }
-            }
-        }
-    }
-}
-```
-
-</details>
 
 ---
 
@@ -440,14 +329,14 @@ output: trivy-report.json
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
-  name: app-rollout
+  name: backend
 spec:
   strategy:
     blueGreen:
-      activeService: app-active
-      previewService: app-preview
+      activeService: backend
+      previewService: backend-preview
       autoPromotionEnabled: false
-      scaleDownDelaySeconds: 30
+
 ```
 
 **Benefits:**
@@ -465,17 +354,19 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
-  name: app-rollout
+  name: backend
 spec:
   strategy:
     canary:
+      stableService: backend
+      canaryService: backend-canary
       steps:
       - setWeight: 20
-      - pause: {duration: 5m}
+      - pause: {duration: 30}
       - setWeight: 50
-      - pause: {duration: 5m}
-      - setWeight: 80
-      - pause: {duration: 5m}
+      - pause: {duration: 30}
+      - setWeight: 100
+
 ```
 
 **Benefits:**
@@ -490,162 +381,6 @@ spec:
 
 ### 📊 Automated Analysis
 
-```yaml
-apiVersion: argoproj.io/v1alpha1
-kind: AnalysisTemplate
-metadata:
-  name: success-rate
-spec:
-  metrics:
-  - name: success-rate
-    interval: 5m
-    successCondition: result >= 0.95
-    provider:
-      prometheus:
-        address: http://prometheus:9090
-        query: |
-          sum(rate(http_requests_total{status=~"2.."}[5m]))
-          /
-          sum(rate(http_requests_total[5m]))
-```
-
----
-
-## 📊 Monitoring
-
-### 🔭 Recommended Stack
-
-<table>
-<tr>
-<td align="center" width="33%">
-
-### 📈 Prometheus
-![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)
-
-**Metrics Collection**
-- Time-series database
-- Service discovery
-- Alert manager
-- PromQL queries
-
-</td>
-<td align="center" width="33%">
-
-### 📊 Grafana
-![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)
-
-**Visualization**
-- Custom dashboards
-- Real-time monitoring
-- Alerting rules
-- Multi-source data
-
-</td>
-<td align="center" width="33%">
-
-### 📝 ELK Stack
-![Elastic](https://img.shields.io/badge/Elastic-005571?style=for-the-badge&logo=elastic&logoColor=white)
-
-**Log Aggregation**
-- Centralized logging
-- Log parsing
-- Search & analytics
-- Kibana dashboards
-
-</td>
-</tr>
-</table>
-
-### 📋 Key Metrics to Monitor
-
-```yaml
-# Deployment Metrics
-- deployment_success_rate
-- deployment_duration
-- rollback_count
-
-# Application Metrics
-- request_rate
-- error_rate
-- response_time_p95
-- cpu_utilization
-- memory_usage
-
-# Security Metrics
-- vulnerability_count
-- quality_gate_status
-- security_hotspots
-```
-
----
-
-## 🤝 Contributing
-
-We love contributions! 🎉 Here's how you can help:
-
-### 🌟 Ways to Contribute
-
-<table>
-<tr>
-<td>
-
-#### 🐛 Report Bugs
-Found a bug? [Open an issue](../../issues)
-
-</td>
-<td>
-
-#### 💡 Suggest Features
-Have an idea? [Start a discussion](../../discussions)
-
-</td>
-<td>
-
-#### 📝 Improve Docs
-Documentation improvements are always welcome!
-
-</td>
-</tr>
-</table>
-
-### 🔄 Contribution Workflow
-
-```bash
-# 1. Fork the repository
-# 2. Create your feature branch
-git checkout -b feature/amazing-feature
-
-# 3. Commit your changes
-git commit -m '✨ Add some amazing feature'
-
-# 4. Push to the branch
-git push origin feature/amazing-feature
-
-# 5. Open a Pull Request
-```
-
-### ✅ Commit Convention
-
-We follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-✨ feat: Add new feature
-🐛 fix: Fix bug
-📝 docs: Update documentation
-♻️ refactor: Refactor code
-✅ test: Add tests
-🔧 chore: Update configuration
-```
-
----
-
-## 📄 License
-
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
-
-```
-MIT License - Feel free to use this project for learning and development!
-```
 
 ---
 
