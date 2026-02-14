@@ -224,13 +224,13 @@ kubectl get pods -n default -w
 |-------|------|----------|-------------|
 | **1. Checkout** | Git | ~5s | Clone source code from repository |
 | **2. Build** | Maven | ~2m | Compile application and run tests |
-| **3. SonarQube** | SonarQube | ~1m | Static code analysis & quality gates |
+| **3. SonarQube** | SonarQube | ~30s | Static code analysis & quality gates |
 | **4. Trivy FS Scan** | Trivy | ~30s | Scans the project source code and dependencies |
-| **5. Docker Build** | Docker | ~3m | Create optimized container image |
+| **5. Docker Build** | Docker | ~1m | Create optimized container image |
 | **6. Trivy Image Scan** | Trivy | ~30s | Scan Docker image for vulnerabilities & secrets |
 | **6. Trivy Secret Scan** | Trivy | ~30s | Scans the source code for hardcoded secrets such as passwords, API keys, and tokens. |
 | **7. Push Image** | Docker | ~1m | Push to container registry |
-| **9. Deployment via ArgoCD** | ArgoCD | ~2m | Deploy to Kubernetes cluster |
+| **9. Deployment via ArgoCD** | ArgoCD | ~2s | Deploy to Kubernetes cluster |
 | **9. Clean WS After build** | ArgoCD | ~2s | Clean WS After build |
 
 
