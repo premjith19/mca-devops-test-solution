@@ -38,11 +38,11 @@ spec:
               protocol: TCP
           env:
             - name: SPRING_POSTGRES_URL
-              value: 'jdbc:postgresql://postgresql-primary.postgresql.svc.cluster.local:5432/demo'
+              value: 'jdbc:postgresql://postgresql-primary.postgresql.svc.cluster.local:5432/postgres'
             - name: SPRING_POSTGRES_USERNAME
-              value: 'root'
+              value: 'postgres'
             - name: SPRING_POSTGRES_PASSWORD
-              value: 'DigiLedgeUAT8463'
+              value: 'postgres'
   strategy:
     {{- if eq .Values.strategy.type "bluegreen" }}
     blueGreen:
