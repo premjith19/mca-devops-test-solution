@@ -219,7 +219,7 @@ kubectl get applications -n argocd -w
 
 ### 🔨 Jenkins Pipeline Flow
 
-```mermaid
+```
 graph TB
     Start([🎬 Webhook Trigger]) --> Checkout[📥 Git Checkout]
     Checkout --> Build[🔨 Build Application]
@@ -269,18 +269,6 @@ graph TB
 - ✅ License compliance
 
 </td>
-<td width="50%">
-
-#### ⚙️ **Configuration**
-```yaml
-# trivy-config.yaml
-severity: HIGH,CRITICAL
-ignore-unfixed: true
-format: json
-output: trivy-report.json
-```
-
-</td>
 </tr>
 </table>
 
@@ -293,8 +281,8 @@ output: trivy-report.json
 #### 📈 **Quality Metrics**
 | Metric | Threshold |
 |--------|-----------|
-| Code Coverage | > 80% |
-| Duplications | < 3% |
+| Code Coverage | < 80% |
+| Duplications | > 3% |
 | Maintainability | A Rating |
 | Reliability | A Rating |
 | Security | A Rating |
@@ -306,7 +294,7 @@ output: trivy-report.json
 - ✅ No new bugs
 - ✅ No new vulnerabilities
 - ✅ No new code smells
-- ✅ Coverage on new code > 80%
+- ✅ Coverage on new code < 80%
 - ✅ Security hotspots reviewed
 
 </td>
@@ -379,44 +367,9 @@ spec:
 </tr>
 </table>
 
-### 📊 Automated Analysis
 
 
----
-
-## 🙏 Acknowledgments
-
-<div align="center">
-
-### 💙 Built with Love by MCA DevOps Team
-
-**Special Thanks To:**
-
-| ![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=flat-square&logo=kubernetes&logoColor=white) | ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white) | ![ArgoCD](https://img.shields.io/badge/ArgoCD-EF7B4D?style=flat-square&logo=argo&logoColor=white) | ![Jenkins](https://img.shields.io/badge/Jenkins-D24939?style=flat-square&logo=jenkins&logoColor=white) |
-|:---:|:---:|:---:|:---:|
-| The CNCF community | Docker community | Argo Project | Jenkins community |
-
-### 🌟 Star this repo if you found it helpful!
-
-</div>
-
----
-
-<div align="center">
-
-### 📞 Support & Contact
-
-[![GitHub Issues](https://img.shields.io/badge/GitHub-Issues-red?style=for-the-badge&logo=github)](../../issues)
-[![Discussions](https://img.shields.io/badge/GitHub-Discussions-blue?style=for-the-badge&logo=github)](../../discussions)
-[![Documentation](https://img.shields.io/badge/Read-Documentation-green?style=for-the-badge&logo=readthedocs)](./docs)
-
----
-
-**⚠️ Important Note:** This is a test/demonstration project. For production use, please implement proper security hardening, resource limits, backup strategies, and follow your organization's compliance requirements.
-
----
-
-Made with ❤️ and ☕ by DevOps Engineers
+Made by DevOps Engineers
 
 **Happy Deploying! 🚀**
 
