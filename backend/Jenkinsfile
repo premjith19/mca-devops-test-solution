@@ -1,0 +1,212 @@
+pipeline {
+    agent any
+
+    environment {
+        appname      = "backend"
+        tag          = "1.0.0"
+        argocdPassUAT = credentials('argocd-pass-uat')
+        branch = "${GIT_BRANCH}"
+        DockerRegistryUrl = "https://index.docker.io/v1/"
+        Docker_registry = "nettur19/${appname}"
+    }
+
+    stages {
+
+        stage('Build') {
+            steps {
+                sh '''
+                    docker run --rm -v "$PWD:/app" -w /app maven:3.9.9-eclipse-temurin-21 mvn clean package -DskipTests
+                '''
+            }
+        }
+
+
+        stage('SonarQube') {
+            steps {
+                withSonarQubeEnv('sonar_server') {
+                    sh '''#!/bin/bash
+                        docker run --rm -u 0 -v "$PWD:/usr/src" -w /usr/src sonarsource/sonar-scanner-cli:latest sonar-scanner -Dsonar.projectKey=backend -Dsonar.sources=src/main -Dsonar.java.binaries=target/classes -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.login=${SONAR_AUTH_TOKEN} -Dsonar.branch.name=${BRANCH_NAME} -Dsonar.qualitygate.wait=false
+                    '''
+                }
+            }
+        }
+
+
+        stage('SCA trivy FS scan') {
+            when {
+                allOf {
+                    expression { env.branch == 'main' || (env.branch).startsWith('release') }
+                    environment name: 'IsRun', value: 'true'
+                }
+            }
+            steps {
+                script {
+                    sh "trivy fs . --format template --template \"@/usr/local/share/trivy/templates/html.tpl\" -o trivyfsreport.html"
+                }
+            }
+            post {
+                always {
+                    emailext subject: 'Trivy-FS-Backend-Report',
+                    body: 'Trivy FS Backend report.',
+                    attachmentsPattern: '**/trivyfsreport.html',
+                    to: '$DEFAULT_RECIPIENTS'
+                    publishHTML(target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: false,
+                        reportDir: '',
+                        reportFiles: 'trivyfsreport.html',
+                        reportName: "Trivy FS scan Report"
+                    ])
+                }
+            }
+        }
+
+        stage('trivy FS SBOM Generation and Scan') {
+            when {
+                allOf {
+                    expression { env.branch == 'main' || (env.branch).startsWith('release') }
+                    environment name: 'IsRun', value: 'true'
+                }
+            }
+            steps {
+                script {
+                    sh "trivy fs . --format cyclonedx --timeout 600s -o trivyfsbomreport.json"
+                    if (env.TrivyGateEnabled == "True") {
+                        sh "trivy sbom trivyfsbomreport.json --exit-code 1 --severity HIGH,CRITICAL"
+                    }
+                }
+            }
+        }
+
+        stage('Docker Image build') {
+          steps {
+                script {
+                    sh "echo $DOCKER_PASS | docker login --username nettur19 --password-stdin ${DockerRegistryUrl}"
+                    if ((env.branch).startsWith('release')) {
+                        env.Docker_registry = "${DockerRegistryUrl}/${appname}"
+                        sh "docker build -t ${Docker_registry}:${tag} ."
+                        sh "docker tag ${Docker_registry}:${tag} ${Docker_registry}:uat"
+                    } else if (env.branch == 'main') {
+                        sh "docker build -t ${Docker_registry}:${tag} ."
+                        sh "docker tag ${Docker_registry}:${tag} ${Docker_registry}:prod"
+                    }
+                }
+            }
+        }
+
+        stage('trivy image SBOM Generate') {
+            when {
+                allOf {
+                    expression { env.branch == 'main' || (env.branch).startsWith('release') }
+                    environment name: 'IsRun', value: 'true'
+                }
+            }
+            steps {
+                script {
+                    sh "trivy image --format spdx-json -o result.json ${Docker_registry}:${tag}"
+                }
+            }
+        }
+
+        stage('trivy image scan') {
+            when {
+                allOf {
+                    expression { env.branch == 'main' || (env.branch).startsWith('release') }
+                    environment name: 'IsRun', value: 'true'
+                }
+            }
+            steps {
+                script {
+                    sh "trivy image --timeout 20m --format template --template \"@/usr/local/share/trivy/templates/html.tpl\" -o trivyreport.html ${Docker_registry}:${tag} --timeout 25m "
+                    if (env.TrivyGateEnabled == "True") {
+                        sh "trivy image --no-progress --exit-code 1 --severity HIGH,CRITICAL ${Docker_registry}:${tag}"
+                    }
+                }
+            }
+            post {
+                always {
+                    emailext subject: 'Trivy-DigiLedge-Backend-Report',
+                    body: 'Trivy DigiLedge-Backend report.',
+                    attachmentsPattern: '**/trivyreport.html',
+                    to: '$DEFAULT_RECIPIENTS'
+                    publishHTML(target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: false,
+                        reportDir: '',
+                        reportFiles: 'trivyreport.html',
+                        reportName: "Trivy Image Scan Report"
+                    ])
+                }
+            }
+        }
+
+        stage('trivy image secrets scan') {
+            when {
+                allOf {
+                    expression { env.branch == 'main' || (env.branch).startsWith('release') }
+                    environment name: 'IsRun', value: 'true'
+                }
+            }
+            steps {
+                script {
+                    sh "trivy image --format template --template \"@/usr/local/share/trivy/templates/html.tpl\" -o trivysecretreport.html ${Docker_registry}:${tag} --timeout 30m --no-progress --scanners secret --exit-code 1 --severity HIGH,CRITICAL" //--no-progress --exit-code 1 --severity HIGH,CRITICAL
+                }
+            }
+            post {
+                always {
+                    publishHTML(target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: false,
+                        reportDir: '',
+                        reportFiles: 'trivysecretreport.html',
+                        reportName: "Trivy Image Secret Scan Report"
+                    ])
+                }
+            }
+        }
+
+        stage('Docker Image Push') {
+            steps {
+                script {
+                    sh "echo $DOCKER_PASS | docker login --username nettur19 --password-stdin ${DockerRegistryUrl}"
+                    sh "docker push ${Docker_registry}:${tag} || true"
+                    sh "docker rmi -f ${Docker_registry}:${tag}"
+
+                    if ((env.branch).startsWith('release')) {
+                        sh "docker push ${Docker_registry}:uat || true"
+                        sh "docker rmi -f ${Docker_registry}:uat"
+                    }  else if (env.branch == 'main') {
+
+                        sh "docker push ${Docker_registry}:prod || true"
+                        sh "docker rmi -f ${Docker_registry}:prod"
+                    }
+                }
+            }
+        }
+
+
+        stage('K8s UAT-Deploy') {
+            when {
+                expression { env.branch.startsWith('release/') }
+            }
+            steps {
+              sh "yes | argocd login ${ArgoCDUatUrl} --username admin --password ${argocdPassUAT}"
+              sh "argocd app actions run MCA-Test-BackEnd restart --kind Rollout --resource-name backend"
+            }
+        }
+
+
+
+        stage('Clean Workspace After build') {
+            steps {
+                sh "ls -all"
+                cleanWs()
+                sh "ls -all"
+                sh "pwd"
+            }
+        }
+    }
+}
