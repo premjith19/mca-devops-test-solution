@@ -23,12 +23,6 @@
 
 ---
 
-## 🎯 Overview
-
-A **production-ready DevOps solution** demonstrating enterprise-grade practices for containerization, orchestration, continuous integration/deployment, and automated security scanning. This project implements a complete GitOps workflow using cutting-edge cloud-native tools.
-
----
-
 ## 🛠️ Tech Stack
 
 <table>
@@ -173,16 +167,21 @@ cd mca-devops-test
 ### 2️⃣ Deploy Infrastructure
 
 ```bash
-# Create namespaces
-kubectl create namespace argocd
-kubectl create namespace argo-rollouts
-kubectl create namespace app
-
 # Install ArgoCD
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl create namespace argocd
+kubectl apply -n argocd --server-side --force-conflicts -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
 # Install Argo Rollouts
+kubectl create namespace argo-rollouts
 kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
+
+#Install Postgresql
+helm install my-release oci://registry-1.docker.io/bitnamicharts/postgresql
+
+#Install Ingress Nginx
+helm upgrade --install ingress-nginx ingress-nginx \
+  --repo https://kubernetes.github.io/ingress-nginx \
+  --namespace ingress-nginx --create-namespace
 
 # Wait for pods to be ready
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=argocd-server -n argocd --timeout=300s
@@ -195,7 +194,7 @@ kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=argocd-server -
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 
 # Port forward to access UI
-kubectl port-forward svc/argocd-server -n argocd 8080:443
+kubectl port-forward svc/argocd-server 8080:80 -n argocd
 
 # Open browser: https://localhost:8080
 # Username: admin
@@ -205,11 +204,10 @@ kubectl port-forward svc/argocd-server -n argocd 8080:443
 ### 4️⃣ Deploy Application
 
 ```bash
-# Apply ArgoCD application
-kubectl apply -f argocd/application.yaml
+# Create ArgoCD application
 
 # Watch deployment
-kubectl get applications -n argocd -w
+kubectl get pods -n default -w
 ```
 
 
@@ -220,7 +218,7 @@ kubectl get applications -n argocd -w
 ### 🔨 Jenkins Pipeline Flow
 
 ```
-graph TB
+
     Start([🎬 Webhook Trigger]) --> Checkout[📥 Git Checkout]
     Checkout --> Build[🔨 Build Application]
     Build --> Test[🧪 Unit Tests]
