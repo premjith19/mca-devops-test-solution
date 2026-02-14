@@ -153,18 +153,8 @@ brew install argocd
 
 ## 🚀 Quick Start
 
-### 1️⃣ Clone & Setup
 
-```bash
-# Clone the repository
-git clone <repository-url>
-cd mca-devops-test
-
-# Verify all prerequisites
-./scripts/verify-prerequisites.sh
-```
-
-### 2️⃣ Deploy Infrastructure
+### 1️⃣ Deploy Prerequisites
 
 ```bash
 # Install ArgoCD
@@ -187,7 +177,7 @@ helm upgrade --install ingress-nginx ingress-nginx \
 kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=argocd-server -n argocd --timeout=300s
 ```
 
-### 3️⃣ Access ArgoCD UI
+### 2️⃣ Access ArgoCD UI
 
 ```bash
 # Get initial admin password
@@ -201,7 +191,7 @@ kubectl port-forward svc/argocd-server 8080:80 -n argocd
 # Password: <from previous command>
 ```
 
-### 4️⃣ Deploy Application
+### 3️⃣ Deploy Application
 
 ```bash
 # Create ArgoCD application
@@ -218,11 +208,9 @@ kubectl get pods -n default -w
 ### 🔨 Jenkins Pipeline Flow
 
 ```
-
     Start([🎬 Webhook Trigger]) --> Checkout[📥 Git Checkout]
     Checkout --> Build[🔨 Build Application]
-    Build --> Test[🧪 Unit Tests]
-    Test --> Sonar{📊 SonarQube<br/>Quality Gate}
+    Build --> Sonar{📊 SonarQube Quality Gate}
     Sonar -->|✅ Pass| DockerBuild[🐳 Build Image]
     Sonar -->|❌ Fail| Fail([❌ Pipeline Failed])
     DockerBuild --> TrivyScan{🔍 Trivy Scan}
@@ -364,7 +352,6 @@ spec:
 </td>
 </tr>
 </table>
-
 
 
 Made by DevOps Engineers
